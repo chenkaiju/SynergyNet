@@ -33,10 +33,12 @@ News: Our new work [<a href="https://github.com/choyingw/Voice2Mesh">Cross-Modal
 
 1. Clone
 
-    ```git clone https://github.com/choyingw/SynergyNet```
+    ```git clone https://github.com/chenkaiju/SynergyNet```
 
     ```cd SynergyNet ```
 
+2.1 Build docker image
+    ```docker build -t chenkaiju/synergynet:pytorch1.10-cuda .```
 2. Use conda
 
     ```conda create --name SynergyNet```

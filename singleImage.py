@@ -13,6 +13,7 @@ import os.path as osp
 import glob
 from FaceBoxes import FaceBoxes
 from utils.render import render
+import scipy.io as sio
 
 # Following 3DDFA-V2, we also use 120x120 resolution
 IMG_SIZE = 120
@@ -103,7 +104,9 @@ def main(args):
         img_ori_copy = img_ori.copy()
 
         # mesh
-        render(img_ori, vertices_lst, alpha=0.6, wfp=f'inference_output/rendering_overlay/{name}.jpg')
+        tri = sio.loadmat('./3dmm_data/tri.mat')['tri'] - 1
+        render(img_ori, vertices_lst, alpha=0.6, wfp=f'inference_output/rendering_overlay/{name}.jpg', 
+               connectivity=tri)
         
         # landmarks
         draw_landmarks(img_ori_copy, pts_res, wfp=f'inference_output/landmarks/{name}.jpg')
@@ -120,7 +123,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--files', default='', help='path to a single image or path to a folder containing multiple images')
+    parser.add_argument('-f', '--files', default='./img/sample_2.jpg', help='path to a single image or path to a folder containing multiple images')
     parser.add_argument("--png", action="store_true", help="if images are with .png extension")
     parser.add_argument('--img_size', default=120, type=int)
     parser.add_argument('-b', '--batch-size', default=1, type=int)
