@@ -1,5 +1,5 @@
 {
-    "image": "chenkaiju/synergynet:pytorch1.10-cuda",
+    "image": "kasper/synergynet-tf",
 	"runArgs": [
 		"--gpus=all",
 		"--shm-size=32G"

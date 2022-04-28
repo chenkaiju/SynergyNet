@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.3.1-base-ubuntu20.04
+FROM tensorflow/tensorflow:2.8.0-gpu
 
 # Install some basic utilities
 RUN apt-get update && apt-get install -y \
@@ -40,19 +40,27 @@ RUN chmod 777 /home/$USERNAME
 # ********************************************************
 # * Anything else you want to do like clean up goes here *
 # ********************************************************
-# Set up the Conda environment
-ENV CONDA_AUTO_UPDATE_CONDA=false \
-    PATH=/home/$USERNAME/miniconda/bin:$PATH
-COPY environment.yml /app/environment.yml
-RUN curl -sLo ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py39_4.10.3-Linux-x86_64.sh \
- && chmod +x ~/miniconda.sh \
- && ~/miniconda.sh -b -p ~/miniconda \
- && rm ~/miniconda.sh \
- && conda env update -n base -f /app/environment.yml \
- && rm /app/environment.yml \
- && conda clean -ya
+# # Set up the Conda environment
+# ENV CONDA_AUTO_UPDATE_CONDA=false \
+#     PATH=/home/$USERNAME/miniconda/bin:$PATH
+# COPY environment.yml /app/environment.yml
+# RUN curl -sLo ~/miniconda.sh https://repo.continuum.io/miniconda/Miniconda3-py39_4.10.3-Linux-x86_64.sh \
+#  && chmod +x ~/miniconda.sh \
+#  && ~/miniconda.sh -b -p ~/miniconda \
+#  && rm ~/miniconda.sh \
+#  && conda env update -n base -f /app/environment.yml \
+#  && rm /app/environment.yml \
+#  && conda clean -ya
 
+RUN python -m pip install --upgrade pip
+RUN pip install numpy==1.21.2
+RUN pip install pillow==8.4.0
+RUN pip install scipy==1.7.1
+RUN pip install tqdm==4.62.3
+RUN pip install Cython
+RUN pip install Matplotlib
 RUN pip install opencv-python-headless
+
 
 # [Optional] Set the default user. Omit if you want to keep the default as root.
 
