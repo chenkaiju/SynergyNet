@@ -271,10 +271,11 @@ def DDFADataset(root, filelists, param_fp, batch_size=8, gt_transform=False, tra
         
 def _augmentation(image, param):
 
-    augmented_image = tf.image.random_brightness(image, 0.5)
-    augmented_image = tf.image.random_hue(image, 0.08)
-    augmented_image = tf.image.random_saturation(image, lower=0.5, upper=2)
-    augmented_image = tf.image.random_contrast(image, lower=0.5, upper=2)
+    augmented_image = tf.image.random_brightness(image, 0.1)
+    augmented_image = tf.image.random_hue(augmented_image, 0.02)
+    augmented_image = tf.image.random_saturation(augmented_image, lower=0.5, upper=2)
+    augmented_image = tf.image.random_contrast(augmented_image, lower=0.5, upper=2)
+    augmented_image = tf.clip_by_value(augmented_image, clip_value_min=0., clip_value_max=1.)
     
     return augmented_image, param
     
