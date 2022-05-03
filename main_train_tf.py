@@ -15,6 +15,7 @@ from utilstf.ddfa import str2bool
 from model_building_tf import SynergyNet as SynergyNet
 from loss_definition_tf import ParamAcc, ParamLoss, TrainLoss
 from image_plot_callback import ImagePlotCallback
+from learning_rate_plot_callback import LRPlot
 
 
 # global args (configuration)
@@ -82,16 +83,6 @@ def create_model():
         _type_: tf.keras.Model
     """    
     model = SynergyNet(args, name="SynergyNet")
-    
-    # Resume
-    #ckpt_folder = "./ckpts"
-    #model.load_weights(os.path.join(ckpt_folder, "cp-0005.ckpt"))
-    
-    # Learning rate schedule
-    # lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-    #     initial_learning_rate=args.base_lr,
-    #     decay_steps=10000,
-    #     decay_rate=0.9)
 
     return model
 
@@ -105,7 +96,7 @@ def train_step(model, x_batch_train, y_batch_train, optimizer, loss, train_acc_m
     # Update training metric.
     train_acc_metric.update_state(y_batch_train, param_pred)
     
-    return {"train_loss":loss_value}
+    return loss_value
 
 def train(model, loss, train_acc_metric, val_acc_metric,
           optimizer, train_data, val_data, args, callback_list=[]):
@@ -122,12 +113,13 @@ def train(model, loss, train_acc_metric, val_acc_metric,
     total_batch = train_data.cardinality()
     callbacks.on_train_begin()
     for epoch in range(args.epochs):
-    #for epoch in range(1):
+    #for epoch in range(5):
         
         callbacks.on_epoch_begin(epoch)
         print("\nStart of epoch %d" % (epoch,))
         start_time = time.time()
         
+        loss_value = np.inf
         for step, (x_batch_train, y_batch_train) in enumerate(train_data):
             callbacks.on_train_batch_begin(step)
             
@@ -137,11 +129,10 @@ def train(model, loss, train_acc_metric, val_acc_metric,
             if step % 200 == 0:
                 print(
                     "Training loss (for one batch) at step %d: %.4f"
-                    % (step, float(loss_value["train_loss"])) 
+                    % (step, float(loss_value)) 
                 )
                 print("Seen so far: %d/%d samples" % ((step+1)*args.batch_size, total_batch*args.batch_size))
-            
-            
+             
         # Display metrics at the end of each epoch.
         train_acc = train_acc_metric.result()
         print("Training accuracy over epoch: %.4f" % (float(train_acc),))
@@ -157,7 +148,7 @@ def train(model, loss, train_acc_metric, val_acc_metric,
         val_acc = val_acc_metric.result()
         val_acc_metric.reset_states()
         
-        callbacks.on_epoch_end(epoch, logs={"val_loss":val_acc})
+        callbacks.on_epoch_end(epoch, logs={"loss":loss_value, "acc":train_acc, "val_loss":val_acc, "val_acc":val_acc})
         print("Validation acc: %.4f" % (float(val_acc),))
         print("Time taken: %.2fs" % (time.time()-start_time))
         
@@ -190,11 +181,34 @@ def main():
         gt_transform=True,
         transform=[]
     )
+    print("Number of training batches: ", train_dataset.cardinality().numpy())
     
     model = create_model()
-    optimizer_sgd = tf.keras.optimizers.SGD(learning_rate=args.base_lr)
+    # Resume
+    resume = True
+    if resume==True:
+        resume_model = os.path.join('./ckpts', 'cp-0038.ckpt')
+        model.load_weights(resume_model)
+    
+    # Learning rate schedule
+    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+        initial_learning_rate=args.base_lr,
+        decay_steps=train_dataset.cardinality().numpy(),
+        decay_rate=0.96)
+    optimizer_sgd = tf.keras.optimizers.SGD(learning_rate=lr_schedule)
+    
+    # Loss
+    train_loss = TrainLoss()
+    train_acc = ParamAcc()
+    val_acc = ParamAcc()
+
     
     model.build((None, 120,120,3))
+    model.compile(
+        optimizer = optimizer_sgd,
+        loss = train_loss,
+        metrics = val_acc
+    )    
     model.summary()
     
     # callbacks
@@ -207,26 +221,24 @@ def main():
     
     log_dir = "tensorboard/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+    
     early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, mode='min')
     
     file_writer = tf.summary.create_file_writer(log_dir)
+    lr_tensorboard_callback = LRPlot(file_writer)
     
     train_img, train_param = next(iter(train_dataset))
     val_img, val_param = next(iter(val_dataset))
     image_plot_callback = ImagePlotCallback(train_img, train_param, val_img, file_writer)
     
-    # training
-    train_loss = TrainLoss()
-    train_acc = ParamAcc()
-    val_acc = ParamAcc()
-    optimizer = tf.keras.optimizers.SGD(learning_rate=args.base_lr)
+
     
     ### Training process
     ## Customed training
     train(model=model, loss = train_loss, train_acc_metric = train_acc, 
-          val_acc_metric=val_acc, optimizer=optimizer,
+          val_acc_metric=val_acc, optimizer=optimizer_sgd,
           train_data=train_dataset, val_data=val_dataset, args=args,
-          callback_list=[checkpoint_callback, tensorboard_callback, image_plot_callback])
+          callback_list=[checkpoint_callback, tensorboard_callback, image_plot_callback, lr_tensorboard_callback])
     
     ## Built-in training
     # model.compile(
@@ -242,12 +254,6 @@ def main():
     #                     callbacks=[checkpoint_callback, tensorboard_callback, image_plot_callback])
     
     
-    model.compile(
-        optimizer = optimizer,
-        loss = tf.keras.losses.MeanSquaredError(), #train_loss,
-        metrics =[tf.keras.losses.MeanSquaredError()],
-        run_eagerly = False
-    )    
     loss0, accuracy0 = model.evaluate(test_dataset)
     print("initial loss: {:.2f}".format(loss0))
     print("initial accuracy: {:.2f}".format(accuracy0))
