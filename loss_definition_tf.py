@@ -35,20 +35,21 @@ class TrainLoss(tf.keras.losses.Loss):
         paramLoss = self._param_loss(y_true, y_pred)
         #lmkLoss = self._lmk_loss(y_true, y_pred)
         
-        return paramLoss #+ lmkLoss
+        return paramLoss
         
     def _param_loss(self, y_true, y_pred):
-        return tf.reduce_mean(tf.math.square(y_pred-y_true), axis=-1, name="ParamLoss")
+        mse = tf.reduce_mean(tf.math.square(y_pred[:,:12] - y_true[:,:12]), axis=-1) + tf.reduce_mean(tf.math.square(y_pred[:,12:] - y_true[:,12:]), axis=-1)
+        return mse
     
     def _lmk_loss(self, y_true, y_pred):
         
         lmk_true = self._reconstruct_vertex_62(y_true)
         lmk_pred = self._reconstruct_vertex_62(y_pred)
         sqe = tf.math.square(lmk_pred-lmk_true)
-        mse = tf.reduce_mean(sqe, axis=-1)
-        print(lmk_true.shape)
+        se = tf.math.sqrt(tf.math.reduce_sum(sqe, axis=1))
+        lmk_mse = tf.math.reduce_mean(se, axis=-1)
         
-        return 0
+        return lmk_mse
     
     def _parse_param_62(self, param):
         """Work for only tensor"""

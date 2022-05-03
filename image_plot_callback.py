@@ -130,32 +130,8 @@ class ImagePlotCallback(tf.keras.callbacks.Callback):
         
         height, width = self.train_images[0].shape[:2]
         base = 3 
-        
-        
-        # single_img = self.images[0].numpy()
-        # single_param = params_pred[0].numpy()
-        # roi_box = [0, 0, 120, 120, 1]
-        # lmks = self.predict_sparseVert(single_param, roi_box, transform=True)
-        # figure = plt.figure(figsize=(height / width * base, base))
-        # ax = plt.axes()
-        # self.draw_landmarks(single_img, lmks, ax)
-        # landmark_img = self.plot_to_image(figure)
-        
-        
-        # with self.logger.as_default():
-        #     tf.summary.image("Validation data 1", landmark_img, step=epoch, max_outputs=6)
-            
-        # single_img = self.images[1].numpy()
-        # single_param = params_pred[1].numpy()
-        # roi_box = [0, 0, 120, 120, 1]
-        # lmks = self.predict_sparseVert(single_param, roi_box, transform=True)
-        # figure = plt.figure(figsize=(height / width * base, base))
-        # ax = plt.axes()
-        # self.draw_landmarks(single_img, lmks, ax)
-        # landmark_img = self.plot_to_image(figure)
-        # with self.logger.as_default():
-        #     tf.summary.image("Validation data 2", landmark_img, step=epoch, max_outputs=6)            
-        
+               
+        # Visualize training data
         figure, ax_array = plt.subplots(2, 3, figsize=(height / width * base*3, base*2))
         for i, ax in zip(range(6), np.ravel(ax_array)):
             single_img = self.train_images[i].numpy()
@@ -168,7 +144,8 @@ class ImagePlotCallback(tf.keras.callbacks.Callback):
         landmark_img = self.plot_to_image(figure)            
         with self.logger.as_default():
             tf.summary.image("Training data", landmark_img, step=epoch, max_outputs=6)
-            
+        
+        # Visualize validation data    
         figure2, ax_array = plt.subplots(2, 3, figsize=(height / width * base*3, base*2))
         for i, ax in zip(range(6), np.ravel(ax_array)):
             single_img = self.val_images[i].numpy()
