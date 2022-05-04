@@ -123,10 +123,10 @@ class ImagePlotCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         
         print(logs)
-        params_pred_train = self.model(self.train_images)
+        params_pred_train, params_pred_lmk_train = self.model(self.train_images)
         params_target = self.param
         
-        params_pred_val = self.model(self.val_images)
+        params_pred_val, params_pred_lmk_val = self.model(self.val_images)
         
         height, width = self.train_images[0].shape[:2]
         base = 3 
@@ -158,3 +158,7 @@ class ImagePlotCallback(tf.keras.callbacks.Callback):
         landmark_img2 = self.plot_to_image(figure2)            
         with self.logger.as_default():
             tf.summary.image("Validation data", landmark_img2, step=epoch, max_outputs=6)            
+            
+
+if __name__ == "__main__":
+    pass

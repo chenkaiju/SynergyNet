@@ -13,7 +13,7 @@ from utilstf.ddfa import DDFADataset
 from utilstf.io import mkdir
 from utilstf.ddfa import str2bool
 from model_building_tf import SynergyNet as SynergyNet
-from loss_definition_tf import ParamAcc, ParamLoss, TrainLoss
+from loss_definition_tf import ParamAcc, TrainLoss
 from image_plot_callback import ImagePlotCallback
 from learning_rate_plot_callback import LRPlot
 
@@ -89,12 +89,12 @@ def create_model():
 #@tf.function
 def train_step(model, x_batch_train, y_batch_train, optimizer, loss, train_acc_metric):
     with tf.GradientTape() as tape:
-        param_pred = model(x_batch_train, training=True)
-        loss_value = loss(y_batch_train, param_pred)            
+        pred = model(x_batch_train, training=True)
+        loss_value = loss(y_batch_train, pred)            
     grads = tape.gradient(loss_value, model.trainable_weights)
     optimizer.apply_gradients(zip(grads, model.trainable_weights))
     # Update training metric.
-    train_acc_metric.update_state(y_batch_train, param_pred)
+    train_acc_metric.update_state(y_batch_train, pred)
     
     return loss_value
 
@@ -132,7 +132,8 @@ def train(model, loss, train_acc_metric, val_acc_metric,
                     % (step, float(loss_value)) 
                 )
                 print("Seen so far: %d/%d samples" % ((step+1)*args.batch_size, total_batch*args.batch_size))
-             
+                #break
+                 
         # Display metrics at the end of each epoch.
         train_acc = train_acc_metric.result()
         print("Training accuracy over epoch: %.4f" % (float(train_acc),))
@@ -185,7 +186,7 @@ def main():
     
     model = create_model()
     # Resume
-    resume = True
+    resume = False
     if resume==True:
         resume_model = os.path.join('./ckpts', 'cp-0038.ckpt')
         model.load_weights(resume_model)
@@ -212,7 +213,7 @@ def main():
     model.summary()
     
     # callbacks
-    ckpt_folder = "./ckpts"
+    ckpt_folder = "./ckpts_new"
     checkpoint_path = os.path.join(ckpt_folder, "cp-{epoch:04d}.ckpt")
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                      save_weights_only=True,
