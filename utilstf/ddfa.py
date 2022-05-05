@@ -268,6 +268,20 @@ def DDFADataset(root, filelists, param_fp, batch_size=8, gt_transform=False, tra
     test_dataset = test_dataset.batch(batch_size, drop_remainder=True)
     
     return train_dataset, val_dataset, test_dataset
+
+def DDFADataset_raw(root, filelists, param_fp, shuffle=False):
+    
+    lines = Path(filelists).read_text().strip().split('\n')
+    img_path = [osp.join(root,s) for s in lines]
+    params = _load_cpu(param_fp)[:,:62] #12 pose, 40 shape, 10 expression, 40 texture
+    
+    dataset = tf.data.Dataset.from_tensor_slices((img_path, params))
+    if shuffle:
+        total_data = len(lines)
+        dataset = dataset.shuffle(buffer_size=total_data)
+    dataset = dataset.map(_read_imgfiles, num_parallel_calls=8)
+    
+    return dataset
         
 def _augmentation(image, param):
 
@@ -287,6 +301,10 @@ def _process_pathnames(image_path, param):
 
     return img, param
 
+def _read_imgfiles(image_path, param):
+    img_str = tf.io.read_file(image_path)
+    img = tf.image.decode_jpeg(img_str, channels=3)
+    return img, param
 
 # # For random cropping and GT adjustment
 # class DDFADataset(data.Dataset):
