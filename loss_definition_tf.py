@@ -33,7 +33,7 @@ def ParamLoss(target_param, pred_param):
 class TrainLoss(tf.keras.losses.Loss):
     """Total loss"""
     def call(self, y_true, y_pred):
-        [y_pred_param, y_pred_lmk, y_pred_lmk_refine] = y_pred
+        [y_pred_param, y_pred_lmk, y_pred_lmk_refine, y_pred_rev_param] = y_pred
         y_pred_param = tf.convert_to_tensor(y_pred_param)
         y_true_param = tf.cast(y_true, y_pred_param.dtype)
         
@@ -46,7 +46,11 @@ class TrainLoss(tf.keras.losses.Loss):
         
         lmk_refine_loss = WingLoss(y_true_lmk, y_pred_lmk_refine)
         
-        return 0.02*param_loss + 0.05*lmk_loss + 0.05*lmk_refine_loss
+        param_loss_rev_target = ParamLoss(y_pred_param, y_true_param)
+        param_loss_rev_pred = ParamLoss(y_pred_param, y_pred_rev_param)
+        
+        return 0.02*param_loss + 0.05*lmk_loss + 0.05*lmk_refine_loss \
+               + 0.02*param_loss_rev_target + 0.001*param_loss_rev_pred
 
     
     def _parse_param_62(self, param):
@@ -107,11 +111,11 @@ class ParamAcc(tf.keras.metrics.Metric):
     """Input and target are all 62-d param"""
     def __init__(self, name="param_acc", **kwargs):
         super(ParamAcc, self).__init__(name=name, **kwargs)
-        self.acc = self.add_weight(name="pa", initializer="zeros")
-        self.total = self.add_weight(name="pa", initializer="zeros")
+        self.acc = self.add_weight(name="error", initializer="zeros")
+        self.total = self.add_weight(name="count", initializer="zeros")
         
     def update_state(self, y_true, y_pred, sample_weight=None):
-        [y_pred_param, y_pred_lmk, y_pred_lmk_refine] = y_pred
+        [y_pred_param, y_pred_lmk, _, _] = y_pred
         y_pred_param = tf.convert_to_tensor(y_pred_param)
         y_true_param = y_true[:,:62]
         y_true_param = tf.cast(y_true_param, y_pred_param.dtype)
@@ -121,7 +125,6 @@ class ParamAcc(tf.keras.metrics.Metric):
         
         param_acc = ParamLoss(y_true_param, y_pred_param)
         lmk_acc = WingLoss(y_true_lmk, y_pred_lmk)
-        lmk_refine_acc = WingLoss(y_true_lmk, y_pred_lmk_refine)
         
         total_acc = 0.02*param_acc + 0.05*lmk_acc
         self.acc.assign_add(tf.reduce_mean(total_acc))

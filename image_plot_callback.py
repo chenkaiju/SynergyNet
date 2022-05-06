@@ -123,10 +123,10 @@ class ImagePlotCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         
         print(logs)
-        params_pred_train, params_pred_lmk_train, _ = self.model(self.train_images)
+        params_pred_train, _, _ , _= self.model(self.train_images)
         params_target = self.param
         
-        params_pred_val, params_pred_lmk_val, _ = self.model(self.val_images)
+        params_pred_val, _, _, _ = self.model(self.val_images)
         
         height, width = self.train_images[0].shape[:2]
         base = 3 

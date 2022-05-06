@@ -114,7 +114,7 @@ def train(model, loss, train_acc_metric, val_acc_metric,
     total_batch = train_data.cardinality()
     callbacks.on_train_begin()
     for epoch in range(args.epochs):
-    #for epoch in range(5):
+    #for epoch in range(1):
         
         callbacks.on_epoch_begin(epoch)
         print("\nStart of epoch %d" % (epoch,))
@@ -133,7 +133,8 @@ def train(model, loss, train_acc_metric, val_acc_metric,
                     % (step, float(loss_value)) 
                 )
                 print("Seen so far: %d/%d samples" % ((step+1)*args.batch_size, total_batch*args.batch_size))
-                #break
+                
+                
                  
         # Display metrics at the end of each epoch.
         train_acc = train_acc_metric.result()
@@ -206,14 +207,15 @@ def main():
     val_acc = ParamAcc()
 
     
-    #input = tf.keras.Input(shape=(120, 120, 3))
-    #output = model(input)
+    input = tf.keras.Input(shape=(120, 120, 3))
+    output = model(input)
     model.compile(
         optimizer = optimizer_sgd,
         loss = train_loss,
         metrics = val_acc
     )    
     model.summary()
+
     
     # callbacks
     ckpt_folder = "./ckpts_new"
@@ -223,7 +225,7 @@ def main():
                                                      verbose=1,
                                                      save_best_only=True)
     
-    log_dir = "tensorboard/" + "mlp_for_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = "tensorboard/" + "mlp_for_back" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
     early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, mode='min')
@@ -257,10 +259,10 @@ def main():
     #                     validation_data=val_dataset,
     #                     callbacks=[checkpoint_callback, tensorboard_callback, image_plot_callback])
     
-    
-    loss0, accuracy0 = model.evaluate(test_dataset)
-    print("initial loss: {:.2f}".format(loss0))
-    print("initial accuracy: {:.2f}".format(accuracy0))
+    # print(model.metrics_names)
+    # loss0, accuracy0 = model.evaluate(test_dataset)
+    # print("initial loss: {:.2f}".format(loss0))
+    # print("initial accuracy: {:.2f}".format(accuracy0))
     
     
     

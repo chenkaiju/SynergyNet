@@ -80,6 +80,9 @@ class SynergyNet(tf.keras.Model):
         # Forward: parameter to landmark
         self.forwardDirection = MLP_for(68)
         
+        # Reverse: landmark to parameters
+        self.backwardDirection = MLP_rev(68)
+        
         self.data_param = [param_pack.param_mean, param_pack.param_std, 
                            param_pack.w_shp_base, param_pack.u_base, param_pack.w_exp_base]
         
@@ -158,11 +161,12 @@ class SynergyNet(tf.keras.Model):
         point_residual = self.forwardDirection(vertex_lmk, avgpool, _3D_attr[:,12:52], _3D_attr[:,52:62])
         point_residual = tf.transpose(point_residual, [0, 2, 1])
         vertex_lmk_refine = vertex_lmk + 0.05 * point_residual
-
         
-        return _3D_attr, vertex_lmk, vertex_lmk_refine  
+        _3D_attr_S2 = self.backwardDirection(vertex_lmk_refine)
         
-class MLP_for(tf.keras.Model):
+        return _3D_attr, vertex_lmk, vertex_lmk_refine, _3D_attr_S2
+        
+class MLP_for(tf.keras.layers.Layer):
     def __init__(self, num_pts):
         super().__init__()
         self.conv1 = tf.keras.layers.Conv1D(64, 1)
@@ -263,7 +267,73 @@ class MLP_for(tf.keras.Model):
         
         return out
         
+class MLP_rev(tf.keras.layers.Layer):
+    def __init__(self, num_pts):
+        super().__init__()
+        
+        self.num_pts = num_pts
+        
+        self.conv1 = tf.keras.layers.Conv1D(64, 1)
+        self.bn1 = tf.keras.layers.BatchNormalization()
+        self.relu1 = tf.keras.layers.ReLU()
+        
+        self.conv2 = tf.keras.layers.Conv1D(64, 1)
+        self.bn2 = tf.keras.layers.BatchNormalization()
+        self.relu2 = tf.keras.layers.ReLU()        
 
-    
+        self.conv3 = tf.keras.layers.Conv1D(128, 1)
+        self.bn3 = tf.keras.layers.BatchNormalization()
+        self.relu3 = tf.keras.layers.ReLU()   
+        
+        self.conv4 = tf.keras.layers.Conv1D(256, 1)
+        self.bn4 = tf.keras.layers.BatchNormalization()
+        self.relu4 = tf.keras.layers.ReLU()
+        
+        self.conv5 = tf.keras.layers.Conv1D(1024, 1)
+        self.bn5 = tf.keras.layers.BatchNormalization()
+        self.relu5 = tf.keras.layers.ReLU()
+        
+        self.conv6_1 = tf.keras.layers.Conv1D(12, 1)
+        self.conv6_2 = tf.keras.layers.Conv1D(40, 1)
+        self.conv6_3 = tf.keras.layers.Conv1D(10, 1)
+        
+        self.bn6_1 = tf.keras.layers.BatchNormalization()
+        self.bn6_2 = tf.keras.layers.BatchNormalization()
+        self.bn6_3 = tf.keras.layers.BatchNormalization()
+        
+    def call(self, input, other_input1=None, other_input2=None, other_input3=None):
+        
+        Lr = tf.transpose(input, [0, 2, 1])
+        out = self.conv1(Lr)
+        out = self.bn1(out)
+        out = self.relu1(out)
+        
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu2(out)
+        
+        out = self.conv3(out)
+        out = self.bn3(out)
+        out = self.relu3(out)
+        
+        out = self.conv4(out)
+        out = self.bn4(out)
+        out = self.relu4(out)
+        
+        out = self.conv5(out)
+        out = self.bn5(out)
+        out = self.relu5(out)
+        
+        global_features = tf.keras.layers.MaxPool1D(pool_size=self.num_pts)(out)
+        
+        out_trans = self.bn6_1(self.conv6_1(global_features))
+        out_shape = self.bn6_2(self.conv6_2(global_features))
+        out_expr = self.bn6_3(self.conv6_3(global_features))
+        
+        out = tf.concat([out_trans, out_shape, out_expr], 2)
+        out = tf.squeeze(out, axis=[1])
+        
+        return out
+            
 if __name__ == '__main__':
     pass    
