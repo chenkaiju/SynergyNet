@@ -60,6 +60,7 @@ def parse_args():
     snapshot_dir = osp.split(args.snapshot)[0]
     mkdir(snapshot_dir)
 
+    return args
 
 def print_args(args):
     for arg in vars(args):
