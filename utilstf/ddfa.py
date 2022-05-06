@@ -249,8 +249,8 @@ def DDFADataset(root, filelists, param_fp, batch_size=8, gt_transform=False, tra
     params = _load_cpu(param_fp)[:,:62] #12 pose, 40 shape, 10 expression, 40 texture
     
     total_data = len(lines)
-    split_train = int(total_data*0.8)
-    split_validation = int(total_data*0.9)
+    split_train = int(total_data*0.9)
+    split_validation = int(total_data*0.95)
     
     train_dataset = tf.data.Dataset.from_tensor_slices((img_path[:split_train], params[:split_train]))
     val_dataset = tf.data.Dataset.from_tensor_slices((img_path[split_train:split_validation], params[split_train:split_validation]))
@@ -271,10 +271,10 @@ def DDFADataset(root, filelists, param_fp, batch_size=8, gt_transform=False, tra
         
 def _augmentation(image, param):
 
-    augmented_image = tf.image.random_brightness(image, 0.1)
-    augmented_image = tf.image.random_hue(augmented_image, 0.02)
-    augmented_image = tf.image.random_saturation(augmented_image, lower=0.5, upper=2)
-    augmented_image = tf.image.random_contrast(augmented_image, lower=0.5, upper=2)
+    augmented_image = tf.image.random_brightness(image, 0.4)
+    #augmented_image = tf.image.random_hue(augmented_image, 0.02)
+    augmented_image = tf.image.random_saturation(augmented_image, lower=0.6, upper=1.6)
+    augmented_image = tf.image.random_contrast(augmented_image, lower=0.6, upper=1.6)
     augmented_image = tf.clip_by_value(augmented_image, clip_value_min=0., clip_value_max=1.)
     
     return augmented_image, param
