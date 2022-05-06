@@ -196,7 +196,8 @@ def main():
         initial_learning_rate=args.base_lr,
         decay_steps=train_dataset.cardinality().numpy(),
         decay_rate=0.96)
-    optimizer_sgd = tf.keras.optimizers.SGD(learning_rate=lr_schedule)
+    
+    optimizer_sgd = tf.keras.optimizers.SGD(learning_rate=lr_schedule, momentum=0.9)
     
     # Loss
     train_loss = TrainLoss()
@@ -204,7 +205,8 @@ def main():
     val_acc = ParamAcc()
 
     
-    model.build((None, 120,120,3))
+    #input = tf.keras.Input(shape=(120, 120, 3))
+    #output = model(input)
     model.compile(
         optimizer = optimizer_sgd,
         loss = train_loss,
@@ -220,7 +222,7 @@ def main():
                                                      verbose=1,
                                                      save_best_only=True)
     
-    log_dir = "tensorboard/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = "tensorboard/" + "mlp_for_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
     early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, mode='min')

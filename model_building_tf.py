@@ -59,13 +59,16 @@ class I2P(tf.keras.Model):
         x = self.backbone(x)
         
         x = self.global_average_layer(x)
+        
+        pool_x = x
+        
         x_ori = self.classifier_ori(x)
         x_shape = self.classifier_shape(x)
         x_exp = self.classifier_exp(x)
         
         x = tf.concat((x_ori, x_shape, x_exp), axis=1)
         
-        return x  
+        return x, pool_x
 
 class SynergyNet(tf.keras.Model):
     def __init__(self, args, name="SynergyNet"):
@@ -148,85 +151,116 @@ class SynergyNet(tf.keras.Model):
     def call(self, input):
         
         x = input
-        _3D_attr = self.I2P(x)
+        _3D_attr, avgpool = self.I2P(x)
         
         vertex_lmk = self._reconstruct_vertex_62(_3D_attr, dense=False)
+        
+        point_residual = self.forwardDirection(vertex_lmk, avgpool, _3D_attr[:,12:52], _3D_attr[:,52:62])
+        point_residual = tf.transpose(point_residual, [0, 2, 1])
+        vertex_lmk_refine = vertex_lmk + 0.05 * point_residual
 
         
-        return _3D_attr, vertex_lmk        
+        return _3D_attr, vertex_lmk, vertex_lmk_refine  
         
 class MLP_for(tf.keras.Model):
     def __init__(self, num_pts):
         super().__init__()
         self.conv1 = tf.keras.layers.Conv1D(64, 1)
+        self.bn1 = tf.keras.layers.BatchNormalization()
+        self.relu1 = tf.keras.layers.ReLU()
+        
         self.conv2 = tf.keras.layers.Conv1D(64, 1)
+        self.bn2 = tf.keras.layers.BatchNormalization()
+        self.relu2 = tf.keras.layers.ReLU()        
+        
         self.conv3 = tf.keras.layers.Conv1D(64, 1)
+        self.bn3 = tf.keras.layers.BatchNormalization()
+        self.relu3 = tf.keras.layers.ReLU()        
+        
         self.conv4 = tf.keras.layers.Conv1D(128, 1)
+        self.bn4 = tf.keras.layers.BatchNormalization()
+        self.relu4 = tf.keras.layers.ReLU()
+        
         self.conv5 = tf.keras.layers.Conv1D(1024, 1)
+        self.bn5 = tf.keras.layers.BatchNormalization()
+        self.relu5 = tf.keras.layers.ReLU()
         
         self.conv6 = tf.keras.layers.Conv1D(512, 1)
+        self.bn6 = tf.keras.layers.BatchNormalization()
+        self.relu6 = tf.keras.layers.ReLU()
+        
         self.conv7 = tf.keras.layers.Conv1D(256, 1)
+        self.bn7 = tf.keras.layers.BatchNormalization()
+        self.relu7 = tf.keras.layers.ReLU()
+        
         self.conv8 = tf.keras.layers.Conv1D(128, 1)
+        self.bn8 = tf.keras.layers.BatchNormalization()
+        self.relu8 = tf.keras.layers.ReLU()
+        
         self.conv9 = tf.keras.layers.Conv1D(3, 1)
+        self.bn9 = tf.keras.layers.BatchNormalization()
+        self.relu9 = tf.keras.layers.ReLU()        
         
         self.num_pts = num_pts
         
     
-    def call(self, intput, other_input1=None, other_input2=None, other_input3=None):
-        out = self.conv1(input)
-        out = tf.keras.layers.BatchNormalization(out)
-        out = tf.keras.layers.ReLU(out)
+    def call(self, input, other_input1=None, other_input2=None, other_input3=None):
+        
+        Lc = tf.transpose(input, [0, 2, 1])
+        out = self.conv1(Lc)
+        out = self.bn1(out)
+        out = self.relu1(out)
         
         out = self.conv2(out)
-        out = tf.keras.layers.BatchNormalization(out)
-        out = tf.keras.layers.ReLU(out)
+        out = self.bn2(out)
+        out = self.relu2(out)
         point_features = out
         
         out = self.conv3(out)
-        out = tf.keras.layers.BatchNormalization(out)
-        out = tf.keras.layers.ReLU(out)
+        out = self.bn3(out)
+        out = self.relu3(out)
         
         out = self.conv4(out)
-        out = tf.keras.layers.BatchNormalization(out)
-        out = tf.keras.layers.ReLU(out)
+        out = self.bn4(out)
+        out = self.relu4(out)
         
         out = self.conv5(out)
-        out = tf.keras.layers.BatchNormalization(out)
-        out = tf.keras.layers.ReLU(out)
+        out = self.bn5(out)
+        out = self.relu5(out)
         
         global_features = tf.keras.layers.MaxPool1D(pool_size=self.num_pts)(out)
-        global_features_repeated = tf.tile(global_features, [1, 1, self.num_pts])
+        global_features_repeated = tf.tile(global_features, [1, self.num_pts, 1])
         
         #3DMM image
         avgpool = other_input1
-        avgpool = tf.expand_dims(input=avgpool, axis=2)
-        avgpool = tf.tile(avgpool, [1,1,self.numpts])
+        avgpool = tf.expand_dims(input=avgpool, axis=1)
+        avgpool = tf.tile(avgpool, [1, self.num_pts, 1])
         
         shape_code = other_input2
-        shape_code = tf.expand_dims(input=shape_code, axis=2)
-        shape_code = tf.tile(shape_code, [1,1,self.num_pts])
+        shape_code = tf.expand_dims(input=shape_code, axis=1)
+        shape_code = tf.tile(shape_code, [1, self.num_pts, 1])
 
         expr_code = other_input3
-        expr_code = tf.expand_dims(input=expr_code, axis=2)
-        expr_code = tf.tile(expr_code, [1,1,self.numpts])
+        expr_code = tf.expand_dims(input=expr_code, axis=1)
+        expr_code = tf.tile(expr_code, [1, self.num_pts, 1])
         
-        out = tf.concat([point_features, global_features_repeated, avgpool, shape_code, expr_code], axis=1)   
+        out = tf.concat([point_features, global_features_repeated, avgpool, shape_code, expr_code], axis=2)   
         out = self.conv6(out)
-        out = tf.keras.layers.BatchNormalization(out)
-        out = tf.keras.layers.ReLU(out)
+        out = self.bn6(out)
+        out = self.relu6(out)
         
         out = self.conv7(out)
-        out = tf.keras.layers.BatchNormalization(out)
-        out = tf.keras.layers.ReLU(out)
+        out = self.bn7(out)
+        out = self.relu7(out)
         
         out = self.conv8(out)
-        out = tf.keras.layers.BatchNormalization(out)
-        out = tf.keras.layers.ReLU(out)
+        out = self.bn8(out)
+        out = self.relu8(out)
         
         out = self.conv9(out)
-        out = tf.keras.layers.BatchNormalization(out)
-        out = tf.keras.layers.ReLU(out)
-                
+        out = self.bn9(out)
+        out = self.relu9(out)
+        
         return out
         
 

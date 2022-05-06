@@ -33,7 +33,7 @@ def ParamLoss(target_param, pred_param):
 class TrainLoss(tf.keras.losses.Loss):
     """Total loss"""
     def call(self, y_true, y_pred):
-        [y_pred_param, y_pred_lmk] = y_pred
+        [y_pred_param, y_pred_lmk, y_pred_lmk_refine] = y_pred
         y_pred_param = tf.convert_to_tensor(y_pred_param)
         y_true_param = tf.cast(y_true, y_pred_param.dtype)
         
@@ -44,7 +44,9 @@ class TrainLoss(tf.keras.losses.Loss):
         #lmkLoss = self._lmk_loss(y_true_lmk, y_pred_lmk)
         lmk_loss = WingLoss(y_true_lmk, y_pred_lmk)
         
-        return 0.02*param_loss + 0.05*lmk_loss
+        lmk_refine_loss = WingLoss(y_true_lmk, y_pred_lmk_refine)
+        
+        return 0.02*param_loss + 0.05*lmk_loss + 0.05*lmk_refine_loss
 
     
     def _parse_param_62(self, param):
@@ -109,7 +111,7 @@ class ParamAcc(tf.keras.metrics.Metric):
         self.total = self.add_weight(name="pa", initializer="zeros")
         
     def update_state(self, y_true, y_pred, sample_weight=None):
-        [y_pred_param, y_pred_lmk] = y_pred
+        [y_pred_param, y_pred_lmk, y_pred_lmk_refine] = y_pred
         y_pred_param = tf.convert_to_tensor(y_pred_param)
         y_true_param = y_true[:,:62]
         y_true_param = tf.cast(y_true_param, y_pred_param.dtype)
@@ -118,7 +120,8 @@ class ParamAcc(tf.keras.metrics.Metric):
         y_true_lmk = self._reconstruct_vertex_62(y_true_param)
         
         param_acc = ParamLoss(y_true_param, y_pred_param)
-        lmk_acc = WingLoss(y_pred_lmk, y_true_lmk)
+        lmk_acc = WingLoss(y_true_lmk, y_pred_lmk)
+        lmk_refine_acc = WingLoss(y_true_lmk, y_pred_lmk_refine)
         
         total_acc = 0.02*param_acc + 0.05*lmk_acc
         self.acc.assign_add(tf.reduce_mean(total_acc))
