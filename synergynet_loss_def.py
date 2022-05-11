@@ -102,17 +102,7 @@ class TrainLoss(keras.losses.Loss):
 
         param_loss = ParamLoss(y_true_param, y_pred_param)
         
-        #y_true_lmk = self._reconstruct_vertex_62(y_true_param)
-        
-        #lmk_loss = WingLoss(y_true_lmk, y_pred_lmk)
-        
-        #lmk_refine_loss = WingLoss(y_true_lmk, y_pred_lmk_refine)
-        
-        #param_loss_rev_target = ParamLoss(y_pred_param, y_true_param)
-        #param_loss_rev_pred = ParamLoss(y_pred_param, y_pred_rev_param)
         return param_loss
-        #return 0.02*param_loss + 0.05*lmk_loss + 0.05*lmk_refine_loss \
-        #       + 0.02*param_loss_rev_target + 0.001*param_loss_rev_pred
 
     
     def _parse_param_62(self, param):

@@ -1,9 +1,6 @@
 import os
 import os.path as osp
-from pathlib import Path
-import numpy as np
 import argparse
-import time
 import logging
 import datetime
 
@@ -76,78 +73,7 @@ def save_checkpoint(model, filename='checkpoint.pth.tar'):
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-
-#@tf.function
-# def train_step(model, x_batch_train, y_batch_train, optimizer, loss, train_acc_metric):
-#     with tf.GradientTape() as tape:
-#         pred = model(x_batch_train, training=True)
-#         loss_value = loss(y_batch_train, pred)            
-#     grads = tape.gradient(loss_value, model.trainable_weights)
-#     optimizer.apply_gradients(zip(grads, model.trainable_weights))
-#     # Update training metric.
-#     train_acc_metric.update_state(y_batch_train, pred)
     
-#     return loss_value
-
-# def train(model, loss, train_acc_metric, val_acc_metric,
-#           optimizer, train_data, val_data, args, callback_list=[]):
-#     """Custom training
-
-#     Args:
-#         model (face align model): image to parameters
-#         loss: loss function
-#         optimizer: optimizer
-#         args (training params): some training configurations
-#     """    
-#     callbacks = tf.keras.callbacks.CallbackList(callback_list, add_history=True, add_progbar=False, model=model)
-    
-#     total_batch = train_data.cardinality()
-#     callbacks.on_train_begin()
-#     for epoch in range(args.epochs):
-#     #for epoch in range(1):
-        
-#         callbacks.on_epoch_begin(epoch)
-#         print("\nStart of epoch %d" % (epoch,))
-#         start_time = time.time()
-        
-#         loss_value = np.inf
-#         for step, (x_batch_train, y_batch_train) in enumerate(train_data):
-#             callbacks.on_train_batch_begin(step)
-            
-#             loss_value = train_step(model, x_batch_train, y_batch_train, optimizer, loss, train_acc_metric)
-            
-#             callbacks.on_train_batch_end(step, logs=loss_value)
-#             if step % 200 == 0:
-#                 print(
-#                     "Training loss (for one batch) at step %d: %.4f"
-#                     % (step, float(loss_value)) 
-#                 )
-#                 print("Seen so far: %d/%d samples" % ((step+1)*args.batch_size, total_batch*args.batch_size))
-                
-                
-                 
-#         # Display metrics at the end of each epoch.
-#         train_acc = train_acc_metric.result()
-#         print("Training accuracy over epoch: %.4f" % (float(train_acc),))
-        
-        
-#         train_acc_metric.reset_states()
-        
-#         # Run a validation loop at the end of epoch
-#         for x_batch_val, y_batch_val in val_data:
-#             param_val = model(x_batch_val, training=False)
-#             # update val metrics
-#             val_acc_metric.update_state(y_batch_val, param_val)
-#         val_acc = val_acc_metric.result()
-#         val_acc_metric.reset_states()
-        
-#         callbacks.on_epoch_end(epoch, logs={"loss":loss_value, "acc":train_acc, "val_loss":val_acc, "val_acc":val_acc})
-#         print("Validation acc: %.4f" % (float(val_acc),))
-#         print("Time taken: %.2fs" % (time.time()-start_time))
-        
-#     callbacks.on_train_end()
-        
          
 def main():
     """ Main function for the training process"""
@@ -195,17 +121,16 @@ def main():
     optimizer_sgd = tf.keras.optimizers.SGD(learning_rate=lr_schedule, momentum=0.9)
     
     # Loss
-    train_loss = TrainLoss()
+    param_loss = TrainLoss()
+    refined_param_loss = TrainLoss()
     lmk_loss = LmkLoss()
-    #train_loss = tf.keras.losses.MeanSquaredError()
-    train_acc = ParamAcc()
-    val_acc = ParamAcc()
+    refined_lmk_loss = LmkLoss()
     lmk_acc = LmkAcc()
 
     # Compile model
     model.compile(
         optimizer = optimizer_sgd,
-        loss = {"pred_param": train_loss, "pred_lmk": lmk_loss, "refined_lmk": lmk_loss, "refined_param": train_loss},
+        loss = {"pred_param": param_loss, "pred_lmk": lmk_loss, "refined_lmk": refined_lmk_loss, "refined_param": refined_param_loss},
         loss_weights = [0.02, 0.05, 0.05, 0.02],
         metrics = {"pred_param": [], "pred_lmk": lmk_acc, "refined_lmk": [], "refined_param": []},
     )
@@ -222,7 +147,7 @@ def main():
     log_dir = "tensorboard_builtin/" + "new_mlp_for_back" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
-    early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, mode='min')
+    early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, mode='min')
     
     file_writer = tf.summary.create_file_writer(log_dir)
     

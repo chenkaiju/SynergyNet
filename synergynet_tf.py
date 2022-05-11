@@ -1,7 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
 
-import numpy as np
 import scipy.io as sio
 
 # All data parameters import
