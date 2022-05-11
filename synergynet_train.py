@@ -15,7 +15,7 @@ from utilstf.ddfa import str2bool
 from synergynet_tf import SynergyNet as SynergyNet
 from synergynet_loss_def import ParamAcc, TrainLoss, LmkLoss, LmkAcc
 from synergynet_image_plot_callback import ImagePlotCallback
-from learning_rate_plot_callback import LRPlot
+from training_time_callback import TrainTimeCallback
 
 
 # global args (configuration)
@@ -219,24 +219,25 @@ def main():
                                                      verbose=1,
                                                      save_best_only=True)
     
-    log_dir = "tensorboard/" + "new_mlp_for_back" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = "tensorboard_builtin/" + "new_mlp_for_back" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
     early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3, mode='min')
     
     file_writer = tf.summary.create_file_writer(log_dir)
-    lr_tensorboard_callback = LRPlot(file_writer)
     
     train_img, train_param = next(iter(train_dataset))
     val_img, val_param = next(iter(val_dataset))
     image_plot_callback = ImagePlotCallback(train_img, train_param, val_img, file_writer)
+    
+    training_time_callback = TrainTimeCallback(file_writer)
     
 
     # Start training
     model.fit(train_dataset, 
               epochs=80,
               steps_per_epoch=None,
-              callbacks=[checkpoint_callback, tensorboard_callback, image_plot_callback, lr_tensorboard_callback],
+              callbacks=[checkpoint_callback, tensorboard_callback, image_plot_callback, training_time_callback],
               validation_data=val_dataset)    
     
 
