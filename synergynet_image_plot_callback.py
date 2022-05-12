@@ -70,7 +70,7 @@ class ImagePlotCallback(keras.callbacks.Callback):
         #height, width = img.shape[:2]
         #base = 6.4 
         #fig.figure(figsize=(base, height / width * base))
-        fig.imshow(img[:, :, ::-1])
+        fig.imshow(img)
         # plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
         fig.axis('off')
 
@@ -134,11 +134,11 @@ class ImagePlotCallback(keras.callbacks.Callback):
         # Visualize training data
         figure, ax_array = plt.subplots(2, 3, figsize=(height / width * base*3, base*2))
         for i, ax in zip(range(6), np.ravel(ax_array)):
-            single_img = self.train_images[i].numpy()
+            single_img = self.train_images[i].numpy()            
             single_param = params_pred_train[i].numpy()
             roi_box = [0, 0, 120, 120, 1]
             lmks = self.predict_sparseVert(single_param, roi_box, transform=True)
-            
+
             self.draw_landmarks(single_img, lmks, ax)
         
         landmark_img = self.plot_to_image(figure)            
@@ -152,7 +152,7 @@ class ImagePlotCallback(keras.callbacks.Callback):
             single_param = params_pred_val[i].numpy()
             roi_box = [0, 0, 120, 120, 1]
             lmks = self.predict_sparseVert(single_param, roi_box, transform=True)
-            
+
             self.draw_landmarks(single_img, lmks, ax)
         
         landmark_img2 = self.plot_to_image(figure2)            
