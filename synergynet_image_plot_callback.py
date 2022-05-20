@@ -3,7 +3,6 @@ from tensorflow import keras
 from utilstf.params import ParamsPack
 param_pack = ParamsPack()
 
-import cv2 as cv
 import io
 import numpy as np
 import matplotlib.pyplot as plt
