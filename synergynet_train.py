@@ -6,7 +6,7 @@ import datetime
 
 import tensorflow as tf
 
-from utilstf.ddfa import DDFADataset
+from ddfa_tfds import DDFA_TFDS
 from utilstf.io import mkdir
 from utilstf.ddfa import str2bool
 from synergynet_tf import SynergyNet as SynergyNet
@@ -93,14 +93,9 @@ def main():
     
     
     # prepare dataset
-    train_dataset, val_dataset, test_dataset = DDFADataset(
-        root=args.root,
-        filelists=args.filelists_train,
-        param_fp=args.param_fp_train,
-        batch_size= args.batch_size,
-        gt_transform=True,
-        transform=[]
-    )
+    # tfds dormat
+    ddfa_tfds = DDFA_TFDS()
+    train_dataset, val_dataset = ddfa_tfds.process()
     print("Number of training batches: ", train_dataset.cardinality().numpy())
     
     model = SynergyNet(args)
@@ -137,14 +132,14 @@ def main():
     model.summary()
        
     # callbacks
-    ckpt_folder = "./ckpts_mod"
+    ckpt_folder = "./ckpts_tfds"
     checkpoint_path = os.path.join(ckpt_folder, "cp-{epoch:04d}.ckpt")
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                      save_weights_only=True,
                                                      verbose=1,
                                                      save_best_only=True)
     
-    log_dir = "tensorboard_builtin/" + "new_mlp_for_back" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = "tensorboard_tfds/" + "i2p_for_back" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
     early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, mode='min')
