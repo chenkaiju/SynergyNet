@@ -1,13 +1,13 @@
-"""custom_dataset dataset."""
+"""aflw2000_tfds dataset."""
 
 import tensorflow_datasets as tfds
-from . import custom_dataset
+from . import aflw2000_tfds
 
 
-class CustomDatasetTest(tfds.testing.DatasetBuilderTestCase):
-  """Tests for custom_dataset dataset."""
-  # TODO(custom_dataset):
-  DATASET_CLASS = custom_dataset.CustomDataset
+class Aflw2000TfdsTest(tfds.testing.DatasetBuilderTestCase):
+  """Tests for aflw2000_tfds dataset."""
+  # TODO(aflw2000_tfds):
+  DATASET_CLASS = aflw2000_tfds.Aflw2000Tfds
   SPLITS = {
       'train': 3,  # Number of fake train example
       'test': 1,  # Number of fake test example

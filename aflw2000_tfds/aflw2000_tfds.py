@@ -1,23 +1,22 @@
-"""custom_dataset dataset."""
+"""aflw2000_tfds dataset."""
+
 import tensorflow_datasets as tfds
 import tensorflow as tf
 from pathlib import Path
 import pickle
 import numpy as np
-import os
 
-
-# TODO(custom_dataset): Markdown description  that will appear on the catalog page.
+# TODO(aflw2000_tfds): Markdown description  that will appear on the catalog page.
 _DESCRIPTION = """
 """
 
-# TODO(custom_dataset): BibTeX citation
+# TODO(aflw2000_tfds): BibTeX citation
 _CITATION = """
 """
 
 
-class CustomDataset(tfds.core.GeneratorBasedBuilder):
-  """DatasetBuilder for custom_dataset dataset."""
+class Aflw2000Tfds(tfds.core.GeneratorBasedBuilder):
+  """DatasetBuilder for aflw2000_tfds dataset."""
 
   VERSION = tfds.core.Version('1.0.0')
   RELEASE_NOTES = {
@@ -26,14 +25,14 @@ class CustomDataset(tfds.core.GeneratorBasedBuilder):
 
   def _info(self) -> tfds.core.DatasetInfo:
     """Returns the dataset metadata."""
-    # TODO(custom_dataset): Specifies the tfds.core.DatasetInfo object
+    # TODO(aflw2000_tfds): Specifies the tfds.core.DatasetInfo object
     return tfds.core.DatasetInfo(
         builder=self,
         description=_DESCRIPTION,
         features=tfds.features.FeaturesDict({
             # These are the features of your dataset like images, labels ...
             'image': tfds.features.Image(shape=(120, 120, 3)),
-            'param': tfds.features.Tensor(shape=(62,), dtype=tf.float64),
+            'param': tfds.features.Tensor(shape=(3, 68), dtype=tf.float32),
         }),
         # If there's a common (input, target) tuple from the
         # features, specify them here. They'll be used if
@@ -45,27 +44,27 @@ class CustomDataset(tfds.core.GeneratorBasedBuilder):
 
   def _split_generators(self, dl_manager: tfds.download.DownloadManager):
     """Returns SplitGenerators."""
-    # TODO(custom_dataset): Downloads the data and defines the splits
+    # TODO(aflw2000_tfds): Downloads the data and defines the splits
     # path = dl_manager.download_and_extract('https://todo-data-url')
     
     root = "../" # Synergy folder
     
-    images_fileDir = os.path.join(root, "train_aug_120x120")
-    images_filelistpath = os.path.join(root, "3dmm_data", "train_aug_120x120.list.train")
-    params_filepath = os.path.join(root, "3dmm_data", "param_all_norm_v201.pkl")
+    images_fileDir = root + "aflw2000_data/AFLW2000-3D_crop/"
+    images_filelistpath = root + "aflw2000_data/AFLW2000-3D_crop.list"
+    params_filepath = root + "aflw2000_data/eval/AFLW2000-3D.pts68.npy"
 
     lines = Path(images_filelistpath).read_text().strip().split('\n')
-    img_paths = [os.path.join(images_fileDir, s) for s in lines]
-    params = self._load_param(params_filepath)[:,:62] #12 pose, 40 shape, 10 expression, 40 texture
-        
-    # TODO(custom_dataset): Returns the Dict[split names, Iterator[Key, Example]]
+    img_paths = [images_fileDir + s for s in lines]
+    params = self._load_param(params_filepath) #12 pose, 40 shape, 10 expression, 40 texture
+
+    # TODO(aflw2000_tfds): Returns the Dict[split names, Iterator[Key, Example]]
     return {
         'train': self._generate_examples(img_paths, params),
     }
 
   def _generate_examples(self, paths, params):
     """Yields examples."""
-    # TODO(custom_dataset): Yields (key, example) tuples from the dataset
+    # TODO(aflw2000_tfds): Yields (key, example) tuples from the dataset
     for i in range(len(paths)):
       path = paths[i]
       param = params[i]
@@ -73,7 +72,7 @@ class CustomDataset(tfds.core.GeneratorBasedBuilder):
           'image': path,
           'param': param,
       }
-
+      
   def _load_param(self, fp):
       suffix = self._get_suffix(fp)
       if suffix == 'npy':
@@ -86,10 +85,4 @@ class CustomDataset(tfds.core.GeneratorBasedBuilder):
       if pos == -1:
           return ''
       return filename[pos + 1:]
-      
 
-if __name__ == "__main__":
-  
-  ds = CustomDataset()
-  dl =tfds.download.DownloadManager
-  ds._split_generators(dl)

@@ -1,17 +1,17 @@
 import os
-from re import I
 import matplotlib.pyplot as plt
-import tensorflow as tf
 import cv2
 import random
 import numpy as np
 import glob
 
 import tensorflow_datasets as tfds
-import custom_dataset
+import tddfa_tfds
+import aflw2000_tfds
 
 from synergynet_train import parse_args
 from synergynet_tf import SynergyNet as SynergyNet
+from utilstf.io import _load_cpu
 from utilstf.ddfa import DDFADataset
 from utilstf.params import ParamsPack
 param_pack = ParamsPack()
@@ -219,19 +219,22 @@ def main():
 
 
 if __name__ == '__main__':
-    
-    # ds = tfds.load('custom_dataset')
+    # ds = tfds.load('aflw2000_tfds', data_dir='aflw2000_tfds', as_supervised=True)
+    # ds = tfds.load('tddfa_tfds', data_dir='tddfa_tfds', as_supervised=True)
     
     # for i, sample in enumerate(ds['train']):
-    #     img = sample['image']
-    #     param = sample['param']
+    #     img = sample[0]
+    #     param = sample[1]
     #     img = cv2.cvtColor(img.numpy(), cv2.COLOR_RGB2BGR)
     #     cv2.imwrite("test.jpg", img)
     #     print("")
     
-    dataDir = "./mod2/aflw2000_data/AFLW2000-3D_crop"
+    # paramPath = "./aflw2000_data/eval/ALFW2000-3D_pose_3ANG_excl.npy"
+    # params = _load_cpu(paramPath)# [:,:62] #12 pose, 40 shape, 10 expression, 40 texture
+    
+    dataDir = "./aflw2000_data/AFLW2000-3D_crop"
     paths = glob.glob(os.path.join(dataDir, "*.jpg"))
     for i, path in enumerate(paths):
         # if i < 10:
-        predictFace(path, I)
+        predictFace(path, i)
     # main()
