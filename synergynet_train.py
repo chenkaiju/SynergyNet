@@ -6,7 +6,9 @@ import datetime
 
 import tensorflow as tf
 
+import tddfa_tfds
 from ddfa_tfds import DDFA_TFDS
+from data_aflw2000_tfds import AFLW2000_TFDS
 from utilstf.io import mkdir
 from utilstf.ddfa import str2bool
 from synergynet_tf import SynergyNet as SynergyNet
@@ -97,6 +99,10 @@ def main():
     ddfa_tfds = DDFA_TFDS()
     train_dataset, val_dataset = ddfa_tfds.process()
     print("Number of training batches: ", train_dataset.cardinality().numpy())
+    print("Number of validation batches: ", val_dataset.cardinality().numpy())
+    
+    aflw_tfds = AFLW2000_TFDS()
+    test_dataset = aflw_tfds.process(augmentation=False)
     
     model = SynergyNet(args)
     

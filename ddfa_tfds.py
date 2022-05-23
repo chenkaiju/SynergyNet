@@ -1,11 +1,11 @@
 import tensorflow_datasets as tfds
 import tensorflow as tf
-import custom_dataset
+import tddfa_tfds
 import math
 
 class DDFA_TFDS():
     def __init__(self):
-        self.dataset = tfds.load("custom_dataset", split='train', as_supervised=True)
+        self.dataset = tfds.load("tddfa_tfds", data_dir='tddfa_tfds', split='train', as_supervised=True)
         self.total = self.dataset.cardinality().numpy()
         self.batch_size = 128
         
@@ -27,7 +27,7 @@ class DDFA_TFDS():
     
 def _convert_type(img, param):
     img = tf.image.convert_image_dtype(img, tf.float32)
-
+    param = tf.cast(param, tf.float32)
     return img, param
     
 def _augmentation(img, param):
