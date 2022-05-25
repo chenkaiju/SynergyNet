@@ -93,15 +93,15 @@ def main():
     
     print_args(args)
     
-    
+    batch_size = args.batch_size
     # prepare dataset
     # tfds dormat
-    ddfa_tfds = DDFA_TFDS()
+    ddfa_tfds = DDFA_TFDS(batch_size=batch_size)
     train_dataset, val_dataset = ddfa_tfds.process()
     print("Number of training batches: ", train_dataset.cardinality().numpy())
     print("Number of validation batches: ", val_dataset.cardinality().numpy())
     
-    aflw_tfds = AFLW2000_TFDS()
+    aflw_tfds = AFLW2000_TFDS(batch_size=batch_size)
     test_dataset = aflw_tfds.process(augmentation=False)
     
     model = SynergyNet(args)
@@ -138,14 +138,14 @@ def main():
     model.summary()
        
     # callbacks
-    ckpt_folder = "./ckpts_tfds"
+    ckpt_folder = "./ckpts_colab"
     checkpoint_path = os.path.join(ckpt_folder, "cp-{epoch:04d}.ckpt")
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                      save_weights_only=True,
                                                      verbose=1,
                                                      save_best_only=True)
     
-    log_dir = "tensorboard_tfds/" + "i2p_for_back" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = os.path.join("tensorboard_colab", "i2p_for_back", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
     early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, mode='min')

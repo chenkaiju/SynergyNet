@@ -3,10 +3,10 @@ import tensorflow as tf
 import aflw2000_tfds
 
 class AFLW2000_TFDS():
-    def __init__(self):
+    def __init__(self, batch_size=128):
         self.trainset = tfds.load("aflw2000_tfds", data_dir='./aflw2000_tfds', split='train', as_supervised=True)
         self.total = self.trainset.cardinality().numpy()
-        self.batch_size = 128
+        self.batch_size = batch_size
         
     def process(self, augmentation=False):
 

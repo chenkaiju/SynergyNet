@@ -1,13 +1,12 @@
 import tensorflow_datasets as tfds
 import tensorflow as tf
-import tddfa_tfds
-import math
+
 
 class DDFA_TFDS():
-    def __init__(self):
+    def __init__(self, batch_size=128):
         self.dataset = tfds.load("tddfa_tfds", data_dir='tddfa_tfds', split='train', as_supervised=True)
         self.total = self.dataset.cardinality().numpy()
-        self.batch_size = 128
+        self.batch_size = batch_size
         
     def process(self):
         
