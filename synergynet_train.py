@@ -15,6 +15,7 @@ from synergynet_tf import SynergyNet as SynergyNet
 from synergynet_loss_def import ParamAcc, TrainLoss, LmkLoss, LmkAcc
 from synergynet_image_plot_callback import ImagePlotCallback
 from training_time_callback import TrainTimeCallback
+from synergy_benchmark_callback import BenchmarkCallback
 
 
 # global args (configuration)
@@ -158,12 +159,15 @@ def main():
     
     training_time_callback = TrainTimeCallback(file_writer)
     
+    test_imgs, test_landmarks, roi_boxes = next(iter(test_dataset))
+    benchmark_callback = BenchmarkCallback(test_imgs, test_landmarks, roi_boxes, file_writer)
+    
 
     # Start training
     model.fit(train_dataset, 
               epochs=80,
               steps_per_epoch=None,
-              callbacks=[checkpoint_callback, tensorboard_callback, image_plot_callback, training_time_callback],
+              callbacks=[checkpoint_callback, tensorboard_callback, image_plot_callback, training_time_callback, benchmark_callback],
               validation_data=val_dataset)    
     
 
