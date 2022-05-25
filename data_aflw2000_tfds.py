@@ -19,20 +19,20 @@ class AFLW2000_TFDS():
         return self.trainset
 
     
-def _convert_type(img, param):
+def _convert_type(img, param, roi_box):
     img = tf.image.convert_image_dtype(img, tf.float32)
     param = tf.cast(param, tf.float32)
 
-    return img, param
+    return img, param, roi_box
     
-def _augmentation(img, param):
+def _augmentation(img, param, roi_box):
     
     augmented_image = tf.image.random_brightness(img, 0.4)
     augmented_image = tf.image.random_saturation(augmented_image, lower=0.6, upper=1.6)
     augmented_image = tf.image.random_contrast(augmented_image, lower=0.6, upper=1.6)
     augmented_image = tf.clip_by_value(augmented_image, clip_value_min=0., clip_value_max=1.)
     
-    return augmented_image, param
+    return augmented_image, param, roi_box
     
 
 if __name__=='__main__':

@@ -49,12 +49,12 @@ class TddfaTfds(tfds.core.GeneratorBasedBuilder):
     
     root = "../" # Synergy folder
     
-    images_fileDir = root + "train_aug_120x120/"
-    images_filelistpath = root + "3dmm_data/train_aug_120x120.list.train"
-    params_filepath = root + "3dmm_data/param_all_norm_v201.pkl"
+    images_fileDir = tf.io.gfile.join(root, "train_aug_120x120")
+    images_filelistpath = tf.io.gfile.join(root, "3dmm_data", "train_aug_120x120.list.train")
+    params_filepath = tf.io.gfile.join(root, "3dmm_data", "param_all_norm_v201.pkl")
 
     lines = Path(images_filelistpath).read_text().strip().split('\n')
-    img_paths = [images_fileDir + s for s in lines]
+    img_paths = [tf.io.gfile.join(images_fileDir, s) for s in lines]
     params = self._load_param(params_filepath)[:,:62] #12 pose, 40 shape, 10 expression, 40 texture
     
     # TODO(tddfa_tfds): Returns the Dict[split names, Iterator[Key, Example]]
