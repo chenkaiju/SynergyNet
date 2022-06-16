@@ -79,7 +79,12 @@ class SynergyNet(keras.Model):
                 # transform to image coordinate space
                 offset_y = tf.constant([0, param_pack.std_size + 1, 0], dtype=tf.float32, shape=[3,1])
                 offset_y = tf.tile(offset_y, [1, 68])
-                vertex = offset_y - vertex
+                
+                y_inv = tf.constant([1.0, -1.0, 1.0], dtype=tf.float32, shape=[3,1])
+                y_inv = tf.tile(y_inv, [1, 68])
+                
+                vertex = tf.multiply(vertex, y_inv)
+                vertex = offset_y + vertex
 
         return vertex
         
