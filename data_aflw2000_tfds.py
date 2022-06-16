@@ -20,7 +20,7 @@ class AFLW2000_TFDS():
 
     
 def _convert_type(img, param, roi_box):
-    img = tf.image.convert_image_dtype(img, tf.float32)
+    img = tf.cast(img, tf.float32)
     param = tf.cast(param, tf.float32)
 
     return img, param, roi_box
@@ -30,13 +30,13 @@ def _augmentation(img, param, roi_box):
     augmented_image = tf.image.random_brightness(img, 0.4)
     augmented_image = tf.image.random_saturation(augmented_image, lower=0.6, upper=1.6)
     augmented_image = tf.image.random_contrast(augmented_image, lower=0.6, upper=1.6)
-    augmented_image = tf.clip_by_value(augmented_image, clip_value_min=0., clip_value_max=1.)
+    augmented_image = tf.clip_by_value(augmented_image, clip_value_min=0., clip_value_max=255.)
     
     return augmented_image, param, roi_box
     
 
 if __name__=='__main__':
-    data1 = DDFA_TFDS()
+    data1 = AFLW2000_TFDS()
     train_data = data1.process()
     
     print('train count: ', train_data.cardinality().numpy())

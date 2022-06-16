@@ -25,16 +25,16 @@ class DDFA_TFDS():
 
     
 def _convert_type(img, param):
-    img = tf.image.convert_image_dtype(img, tf.float32)
+    img = tf.cast(img, tf.float32)
     param = tf.cast(param, tf.float32)
     return img, param
     
 def _augmentation(img, param):
     
-    augmented_image = tf.image.random_brightness(img, 0.4)
+    augmented_image = tf.image.random_brightness(img, 100)
     augmented_image = tf.image.random_saturation(augmented_image, lower=0.6, upper=1.6)
     augmented_image = tf.image.random_contrast(augmented_image, lower=0.6, upper=1.6)
-    augmented_image = tf.clip_by_value(augmented_image, clip_value_min=0., clip_value_max=1.)
+    augmented_image = tf.clip_by_value(augmented_image, clip_value_min=0., clip_value_max=255.)
     
     return augmented_image, param
     

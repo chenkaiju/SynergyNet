@@ -41,7 +41,7 @@ class BenchmarkCallback(keras.callbacks.Callback):
         figure.suptitle('Green=True, Red=Predict (aflw2000)')#, fontsize=16
         
         for i, ax in zip(range(6), np.ravel(ax_array)):
-            single_img = self.test_images[i].numpy()
+            single_img = self.test_images[i].numpy().astype(np.uint8)
             single_landmark = self.test_landmarks_rescaled[i]
             
             lmk_pred = lmks_pred[i]

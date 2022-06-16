@@ -24,7 +24,7 @@ args = None # define the static training setting, which wouldn't and shouldn't b
 def parse_args():
     parser = argparse.ArgumentParser(description='3DMM Fitting')
     parser.add_argument('-j', '--workers', default=8, type=int)
-    parser.add_argument('--epochs', default=80, type=int)
+    parser.add_argument('--epochs', default=200, type=int)
     parser.add_argument('--start-epoch', default=1, type=int)
     parser.add_argument('-b', '--batch-size', default=128, type=int)
     parser.add_argument('-vb', '--val-batch-size', default=32, type=int)
@@ -108,9 +108,11 @@ def main():
     model = SynergyNet(args)
     
     # Resume
-    resume = False
-    if resume==True:
-        resume_model = os.path.join('./ckpts', 'cp-0038.ckpt')
+    #resume = False
+    if args.resume != '':
+        resume_model = os.path.abspath(args.resume)
+        print("Resume from: {}".format(resume_model))
+
         model.load_weights(resume_model)
     
     # Learning rate schedule
@@ -139,14 +141,14 @@ def main():
     model.summary()
        
     # callbacks
-    ckpt_folder = "./ckpts_colab"
+    ckpt_folder = "./ckpts_tfds"
     checkpoint_path = os.path.join(ckpt_folder, "cp-{epoch:04d}.ckpt")
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                      save_weights_only=True,
                                                      verbose=1,
                                                      save_best_only=True)
     
-    log_dir = os.path.join("tensorboard_colab", "i2p_for_back", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    log_dir = os.path.join("tensorboard_tfds", "i2p_for_back", datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
     
     early_stop_callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, mode='min')
@@ -155,7 +157,7 @@ def main():
     
     train_img, train_param = next(iter(train_dataset))
     val_img, val_param = next(iter(val_dataset))
-    image_plot_callback = ImagePlotCallback(train_img, train_param, val_img, file_writer)
+    image_plot_callback = ImagePlotCallback(train_img, train_param, val_img, val_param, file_writer)
     
     training_time_callback = TrainTimeCallback(file_writer)
     
@@ -165,7 +167,7 @@ def main():
 
     # Start training
     model.fit(train_dataset, 
-              epochs=80,
+              epochs=args.epochs,
               steps_per_epoch=None,
               callbacks=[checkpoint_callback, tensorboard_callback, image_plot_callback, training_time_callback, benchmark_callback],
               validation_data=val_dataset)    
@@ -173,4 +175,4 @@ def main():
 
     
 if __name__ == '__main__':
-    main()    
+    main()
