@@ -8,10 +8,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class ImagePlotCallback(keras.callbacks.Callback):
-    def __init__(self, train_dataset, train_param, val_dataset, logger):
+    def __init__(self, train_dataset, train_param, val_dataset, val_param, logger):
         self.train_images = train_dataset
         self.val_images = val_dataset
-        self.param = train_param
+        self.train_params = train_param
+        self.val_params = val_param
         self.logger = logger
 
     def parse_param(self, param):
@@ -61,7 +62,7 @@ class ImagePlotCallback(keras.callbacks.Callback):
         return vertex
     
                     
-    def draw_landmarks(self, img, pts, fig):
+    def draw_landmarks(self, img, pts, fig, color='g', markeredgecolor = 'green'):
         # height, width = img.shape[:2]
         # base = 6.4 
         # figure = plt.figure(figsize=(base, height / width * base))
@@ -79,8 +80,8 @@ class ImagePlotCallback(keras.callbacks.Callback):
             alpha = 0.8
             markersize = 1.5
             lw = 1 
-            color = 'g'
-            markeredgecolor = 'green'
+            color = color
+            markeredgecolor = markeredgecolor
 
             nums = [0, 17, 22, 27, 31, 36, 42, 48, 60, 68]
 
@@ -133,12 +134,15 @@ class ImagePlotCallback(keras.callbacks.Callback):
         # Visualize training data
         figure, ax_array = plt.subplots(2, 3, figsize=(height / width * base*3, base*2))
         for i, ax in zip(range(6), np.ravel(ax_array)):
-            single_img = self.train_images[i].numpy()            
+            single_img = self.train_images[i].numpy().astype(np.uint8)
+            true_param = self.train_params[i].numpy()
             single_param = params_pred_train[i].numpy()
             roi_box = [0, 0, 120, 120, 1]
-            lmks = self.predict_sparseVert(single_param, roi_box, transform=True)
+            lmk_pred = self.predict_sparseVert(single_param, roi_box, transform=True)
+            lmk_true = self.predict_sparseVert(true_param, roi_box, transform=True)
 
-            self.draw_landmarks(single_img, lmks, ax)
+            self.draw_landmarks(single_img, lmk_true, ax)
+            self.draw_landmarks(single_img, lmk_pred, ax, color='r', markeredgecolor='red')
         
         landmark_img = self.plot_to_image(figure)            
         with self.logger.as_default():
@@ -147,12 +151,15 @@ class ImagePlotCallback(keras.callbacks.Callback):
         # Visualize validation data    
         figure2, ax_array = plt.subplots(2, 3, figsize=(height / width * base*3, base*2))
         for i, ax in zip(range(6), np.ravel(ax_array)):
-            single_img = self.val_images[i].numpy()
+            single_img = self.val_images[i].numpy().astype(np.uint8)
             single_param = params_pred_val[i].numpy()
+            true_param = self.val_params[i].numpy()
             roi_box = [0, 0, 120, 120, 1]
             lmks = self.predict_sparseVert(single_param, roi_box, transform=True)
+            lmks_true = self.predict_sparseVert(true_param, roi_box, transform=True)
 
-            self.draw_landmarks(single_img, lmks, ax)
+            self.draw_landmarks(single_img, lmks_true, ax)
+            self.draw_landmarks(single_img, lmks, ax, color='r', markeredgecolor='red')
         
         landmark_img2 = self.plot_to_image(figure2)            
         with self.logger.as_default():
