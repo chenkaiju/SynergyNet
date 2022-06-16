@@ -1,13 +1,10 @@
-import torch
-import torchvision.transforms as transforms
+from cv2 import transform
 import numpy as np
+import tensorflow as tf
 import cv2
-from utils.ddfa import ToTensor, Normalize
-from model_building import SynergyNet
-from utils.inference import crop_img, predict_sparseVert, draw_landmarks, predict_denseVert, predict_pose, draw_axis
+from synergynet_tf import SynergyNet
+from utilstf.inference import crop_img, predict_sparseVert, draw_landmarks, predict_denseVert, predict_pose, draw_axis
 import argparse
-import torch.backends.cudnn as cudnn
-cudnn.benchmark = True
 import os
 import os.path as osp
 import glob
@@ -19,29 +16,20 @@ import scipy.io as sio
 IMG_SIZE = 120
 
 def main(args):
-    # load pre-tained model
-    checkpoint_fp = 'pretrained/best.pth.tar' 
-    args.arch = 'mobilenet_v2'
-    args.devices_id = [0]
-
-    checkpoint = torch.load(checkpoint_fp, map_location=lambda storage, loc: storage)['state_dict']
     
+    args.arch = 'mobilenet_v2'
     model = SynergyNet(args)
-    model_dict = model.state_dict()
-
-    # because the model is trained by multiple gpus, prefix 'module' should be removed
-    for k in checkpoint.keys():
-        model_dict[k.replace('module.', '')] = checkpoint[k]
-
-    model.load_state_dict(model_dict, strict=False)
-    model = model.cuda()
-    model.eval()
+    
+    # load pre-tained model
+    dir="./saved_model"
+    ckpt_name='cp-0062.ckpt'
+    resume_model = os.path.join(dir, ckpt_name)
+    #resume_model = os.path.join('./ckpts_tfds', 'cp-0061.ckpt')
+    model.load_weights(resume_model)
 
     # face detector
     face_boxes = FaceBoxes()
 
-    # preparation
-    transform = transforms.Compose([ToTensor(), Normalize(mean=127.5, std=128)])
     if osp.isdir(args.files):
         if not args.files[-1] == '/':
             args.files = args.files + '/'
@@ -64,6 +52,9 @@ def main(args):
         pts_res = []
         poses = []
         vertices_lst = []
+        if not osp.exists(f'inference_output/validate_crop/'):
+            os.makedirs(f'inference_output/validate_crop/')
+            
         for idx, rect in enumerate(rects):
             roi_box = rect
 
@@ -76,20 +67,30 @@ def main(args):
 
             img = crop_img(img_ori, roi_box)
             img = cv2.resize(img, dsize=(IMG_SIZE, IMG_SIZE), interpolation=cv2.INTER_LINEAR)
-            # cv2.imwrite(f'validate_{idx}.png', img)
             
-            input = transform(img).unsqueeze(0)
-            with torch.no_grad():
-                input = input.cuda()
-                param = model.forward_test(input)
-                param = param.squeeze().cpu().numpy().flatten().astype(np.float32)
-
+            cv2.imwrite(f'inference_output/validate_crop/validate_{idx}.png', img)
+            
+            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            input = tf.cast(img_rgb, tf.float32)
+            #input = input / 255.0
+            input = tf.expand_dims(input, 0)
+            #input = tf.image.convert_image_dtype(img, tf.float32)
+            param_pred_batch, lmk_pred_batch, lmk_ref_pred_batch, _ = model(input, training=False)
+            res = model(input, training=False)
+            param_pred_batch = res['pred_param']
+            lmk_pred_batch = res['pred_lmk']
+            lmk_ref_pred_batch = res['refined_lmk']
+            
+            param_pred = tf.squeeze(param_pred_batch, [0]).numpy()
+            lmk_pred = tf.squeeze(lmk_pred_batch, [0]).numpy()
+            lmk_pred_img = transformToROI(lmk_pred, roi_box)
             # inferences
-            lmks = predict_sparseVert(param, roi_box, transform=True)
-            vertices = predict_denseVert(param, roi_box, transform=True)
-            angles, translation = predict_pose(param, roi_box)
+            lmks = lmk_pred_img
+            #lmks = predict_sparseVert(param_pred, roi_box, transform=True)
+            vertices = predict_denseVert(param_pred, roi_box, transform=True)
+            angles, translation = predict_pose(param_pred, roi_box)
 
-            pts_res.append(lmks)
+            pts_res.append(lmk_pred)
             vertices_lst.append(vertices)
             poses.append([angles, translation, lmks])
 
@@ -120,10 +121,24 @@ def main(args):
         cv2.imwrite(wfp, img_axis_plot)
         print(f'Save pose result to {wfp}')
 
+def transformToROI(vertex, roi_bbox):
+    
+    sx, sy, ex, ey, _ = roi_bbox
+    scale_x = (ex - sx) / 120
+    scale_y = (ey - sy) / 120
+    vertex[0, :] = vertex[0, :] * scale_x + sx
+    vertex[1, :] = vertex[1, :] * scale_y + sy
 
+    s = (scale_x + scale_y) / 2
+    vertex[2, :] *= s
+    
+    return vertex
+    
+    
+    
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--files', default='./img/sample_2.jpg', help='path to a single image or path to a folder containing multiple images')
+    parser.add_argument('-f', '--files', default='./faces/male/', help='path to a single image or path to a folder containing multiple images')
     parser.add_argument("--png", action="store_true", help="if images are with .png extension")
     parser.add_argument('--img_size', default=120, type=int)
     parser.add_argument('-b', '--batch-size', default=1, type=int)
