@@ -124,6 +124,7 @@ class ImagePlotCallback(keras.callbacks.Callback):
         
         result_train = self.model(self.train_images)
         params_pred_train = result_train['pred_param']
+        lmk_pred_train = result_train['pred_lmk']
         
         result_val = self.model(self.val_images)
         params_pred_val = result_val['pred_param']
@@ -138,7 +139,8 @@ class ImagePlotCallback(keras.callbacks.Callback):
             true_param = self.train_params[i].numpy()
             single_param = params_pred_train[i].numpy()
             roi_box = [0, 0, 120, 120, 1]
-            lmk_pred = self.predict_sparseVert(single_param, roi_box, transform=True)
+            #lmk_pred = self.predict_sparseVert(single_param, roi_box, transform=True)
+            lmk_pred = lmk_pred_train[i]
             lmk_true = self.predict_sparseVert(true_param, roi_box, transform=True)
 
             self.draw_landmarks(single_img, lmk_true, ax)
