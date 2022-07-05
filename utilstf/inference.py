@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from utilstf.params import ParamsPack
 param_pack = ParamsPack()
 from math import cos, sin, atan2, asin, sqrt
-import cv2 as cv
+import cv2
 import io
 
 def parse_param(param):
@@ -152,6 +152,7 @@ def draw_landmarks(img, pts, wfp):
 
     if not type(pts) in [tuple, list]:
         pts = [pts]
+    
     for i in range(len(pts)):
         alpha = 0.8
         markersize = 1.5
@@ -177,7 +178,6 @@ def draw_landmarks(img, pts, wfp):
                         color=color,
                         markeredgecolor=markeredgecolor, alpha=alpha)
             
-
 
     plt.savefig(wfp, dpi=200)
     print('Save landmark result to {}'.format(wfp))
