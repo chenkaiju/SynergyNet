@@ -4,14 +4,15 @@ import aflw2000_tfds
 
 class AFLW2000_TFDS():
     def __init__(self, batch_size=128):
-        self.trainset = tfds.load("aflw2000_tfds", data_dir='./aflw2000_tfds', split='train', as_supervised=True)
+        self.trainset = tfds.load("aflw2000_tfds", data_dir='./aflw2000_tfds', split='train', 
+                                  as_supervised=True, shuffle_files=False)
         self.total = self.trainset.cardinality().numpy()
         self.batch_size = batch_size
         
     def process(self, augmentation=False):
 
         self.trainset = self.trainset.map(_convert_type, num_parallel_calls=8)
-        self.trainset = self.trainset.batch(self.batch_size, drop_remainder=True)
+        self.trainset = self.trainset.batch(self.batch_size, drop_remainder=False)
         
         if augmentation==True:
             self.trainset = self.trainset.map(_augmentation, num_parallel_calls=8)

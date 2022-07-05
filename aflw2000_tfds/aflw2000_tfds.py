@@ -40,6 +40,7 @@ class Aflw2000Tfds(tfds.core.GeneratorBasedBuilder):
         # `as_supervised=True` in `builder.as_dataset`.
         supervised_keys=('image', 'landmark', 'roi_box'),  # Set to `None` to disable
         homepage='https://dataset-homepage/',
+        disable_shuffling=True,
         citation=_CITATION,
     )
 
