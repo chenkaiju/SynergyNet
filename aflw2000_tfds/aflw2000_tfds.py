@@ -33,15 +33,16 @@ class Aflw2000Tfds(tfds.core.GeneratorBasedBuilder):
             # These are the features of your dataset like images, labels ...
             'image': tfds.features.Image(shape=(120, 120, 3)),
             'landmark': tfds.features.Tensor(shape=(3, 68), dtype=tf.float32),
-            'roi_box': tfds.features.Tensor(shape=(4, ), dtype=tf.float32)
+            'roi_box': tfds.features.Tensor(shape=(4, ), dtype=tf.float32),
+            'angle': tfds.features.Tensor(shape=(3, ), dtype=tf.float32),
         }),
         # If there's a common (input, target) tuple from the
         # features, specify them here. They'll be used if
         # `as_supervised=True` in `builder.as_dataset`.
-        supervised_keys=('image', 'landmark', 'roi_box'),  # Set to `None` to disable
+        supervised_keys= None,#('image', 'landmark', 'roi_box', 'angle') # Set to `None` to disable
         homepage='https://dataset-homepage/',
-        disable_shuffling=True,
         citation=_CITATION,
+        disable_shuffling=True
     )
 
   def _split_generators(self, dl_manager: tfds.download.DownloadManager):
@@ -55,28 +56,33 @@ class Aflw2000Tfds(tfds.core.GeneratorBasedBuilder):
     images_filelistpath = tf.io.gfile.join(root, "aflw2000_data", "AFLW2000-3D_crop.list")
     params_filepath = tf.io.gfile.join(root, "aflw2000_data", "eval", "AFLW2000-3D.pts68.npy")
     roiboxes_filepath = tf.io.gfile.join(root, "aflw2000_data", "eval", "AFLW2000-3D_crop.roi_box.npy")
+    angles_filepath = tf.io.gfile.join(root, "aflw2000_data", "eval", "ALFW2000-3D_pose_3ANG.npy")
 
     lines = Path(images_filelistpath).read_text().strip().split('\n')
     img_paths = [tf.io.gfile.join(images_fileDir, s) for s in lines]
     params = self._load_param(params_filepath) #12 pose, 40 shape, 10 expression, 40 texture
     roiboxes = self._load_param(roiboxes_filepath)
+    angles = self._load_param(angles_filepath).astype(np.float32)
+
 
     # TODO(aflw2000_tfds): Returns the Dict[split names, Iterator[Key, Example]]
     return {
-        'train': self._generate_examples(img_paths, params, roiboxes),
+        'train': self._generate_examples(img_paths, params, roiboxes, angles),
     }
 
-  def _generate_examples(self, paths, params, roi_boxes):
+  def _generate_examples(self, paths, params, roi_boxes, angles):
     """Yields examples."""
     # TODO(aflw2000_tfds): Yields (key, example) tuples from the dataset
     for i in range(len(paths)):
       path = paths[i]
       param = params[i]
       roi_box = roi_boxes[i]
+      angle = angles[i]
       yield i, {
           'image': path,
           'landmark': param,
-          'roi_box': roi_box
+          'roi_box': roi_box,
+          'angle': angle,
       }
       
   def _load_param(self, fp):
