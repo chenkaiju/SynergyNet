@@ -2,7 +2,7 @@ from cv2 import transform
 import numpy as np
 import tensorflow as tf
 import cv2
-from synergynet_tf import SynergyNet
+from synergynet_tf import SynergyNetPred
 from utilstf.inference import crop_img, predict_sparseVert, draw_landmarks, predict_denseVert, predict_pose, draw_axis
 import argparse
 import os
@@ -20,17 +20,10 @@ IMG_SIZE = 120
 
     
 def main(args):
+       
+    model_path = "./pred_model/save_model"
+    model = tf.keras.models.load_model(model_path)
     
-    args.arch = 'mobilenet_v2'
-    model = SynergyNet(args)
-    
-    # load pre-tained model
-    dir="./saved_model"
-    ckpt_name='cp-0200.ckpt'
-    resume_model = os.path.join(dir, ckpt_name)
-    #resume_model = os.path.join('./ckpts_tfds', 'cp-0061.ckpt')
-    model.load_weights(resume_model).expect_partial()
-
     # face detector
     face_boxes = FaceBoxes()
 

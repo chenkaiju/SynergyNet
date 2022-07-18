@@ -7,7 +7,27 @@ import scipy.io as sio
 from utilstf.params import ParamsPack
 param_pack = ParamsPack()
 
-
+class SynergyNetPred(keras.Model):
+    def __init__(self, args, name="SynergyNetPred"):
+        super().__init__()
+        self.triangles = sio.loadmat('./3dmm_data/tri.mat')['tri'] -1
+        self.img_size = args.img_size
+        
+        # Image-to-parameter
+        self.I2P = I2P(args)
+        
+    def summary(self):
+        x = tf.keras.Input(shape=(120, 120, 3))
+        model = tf.keras.Model(inputs=[x], outputs=self.call(x))
+        return model.summary()        
+        
+    def call(self, input):
+        
+        x = input
+        _3D_attr, avgpool = self.I2P(x)
+        
+        return { "pred_param":_3D_attr }
+            
 
 class SynergyNet(keras.Model):
     def __init__(self, args, name="SynergyNet"):
