@@ -5,7 +5,7 @@ import aflw2000_tfds
 class AFLW2000_TFDS():
     def __init__(self, batch_size=128):
         self.trainset = tfds.load("aflw2000_tfds", data_dir='./aflw2000_tfds', split='train', 
-                                  as_supervised=True, shuffle_files=False)
+                                  as_supervised=False, shuffle_files=False)
         self.total = self.trainset.cardinality().numpy()
         self.batch_size = batch_size
         
@@ -20,14 +20,19 @@ class AFLW2000_TFDS():
         return self.trainset
 
     
-def _convert_type(img, param, roi_box):
+def _convert_type(dataset):
+    img = dataset['image']
+    param = dataset['landmark']
+    roi_box = dataset['roi_box']
     img = tf.cast(img, tf.float32)
     param = tf.cast(param, tf.float32)
 
     return img, param, roi_box
     
-def _augmentation(img, param, roi_box):
-    
+def _augmentation(dataset):
+    img = dataset['image']
+    param = dataset['landmark']
+    roi_box = dataset['roi_box']
     augmented_image = tf.image.random_brightness(img, 0.4)
     augmented_image = tf.image.random_saturation(augmented_image, lower=0.6, upper=1.6)
     augmented_image = tf.image.random_contrast(augmented_image, lower=0.6, upper=1.6)
