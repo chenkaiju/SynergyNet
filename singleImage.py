@@ -12,9 +12,13 @@ from FaceBoxes import FaceBoxes
 from utils.render import render
 import scipy.io as sio
 
+from utilstf.params import ParamsPack
+param_pack = ParamsPack()
+
 # Following 3DDFA-V2, we also use 120x120 resolution
 IMG_SIZE = 120
 
+    
 def main(args):
     
     args.arch = 'mobilenet_v2'
@@ -22,10 +26,10 @@ def main(args):
     
     # load pre-tained model
     dir="./saved_model"
-    ckpt_name='cp-0062.ckpt'
+    ckpt_name='cp-0200.ckpt'
     resume_model = os.path.join(dir, ckpt_name)
     #resume_model = os.path.join('./ckpts_tfds', 'cp-0061.ckpt')
-    model.load_weights(resume_model)
+    model.load_weights(resume_model).expect_partial()
 
     # face detector
     face_boxes = FaceBoxes()
@@ -72,25 +76,19 @@ def main(args):
             
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             input = tf.cast(img_rgb, tf.float32)
-            #input = input / 255.0
             input = tf.expand_dims(input, 0)
-            #input = tf.image.convert_image_dtype(img, tf.float32)
-            param_pred_batch, lmk_pred_batch, lmk_ref_pred_batch, _ = model(input, training=False)
+            
             res = model(input, training=False)
             param_pred_batch = res['pred_param']
-            lmk_pred_batch = res['pred_lmk']
-            lmk_ref_pred_batch = res['refined_lmk']
             
             param_pred = tf.squeeze(param_pred_batch, [0]).numpy()
-            lmk_pred = tf.squeeze(lmk_pred_batch, [0]).numpy()
-            lmk_pred_img = transformToROI(lmk_pred, roi_box)
+            
             # inferences
-            lmks = lmk_pred_img
-            #lmks = predict_sparseVert(param_pred, roi_box, transform=True)
+            lmks = predict_sparseVert(param_pred, roi_box, transform=True)
             vertices = predict_denseVert(param_pred, roi_box, transform=True)
             angles, translation = predict_pose(param_pred, roi_box)
 
-            pts_res.append(lmk_pred)
+            pts_res.append(lmks)
             vertices_lst.append(vertices)
             poses.append([angles, translation, lmks])
 
@@ -121,24 +119,24 @@ def main(args):
         cv2.imwrite(wfp, img_axis_plot)
         print(f'Save pose result to {wfp}')
 
-def transformToROI(vertex, roi_bbox):
+# def transformToROI(vertex, roi_bbox):
     
-    sx, sy, ex, ey, _ = roi_bbox
-    scale_x = (ex - sx) / 120
-    scale_y = (ey - sy) / 120
-    vertex[0, :] = vertex[0, :] * scale_x + sx
-    vertex[1, :] = vertex[1, :] * scale_y + sy
+#     sx, sy, ex, ey, _ = roi_bbox
+#     scale_x = (ex - sx) / 120
+#     scale_y = (ey - sy) / 120
+#     vertex[0, :] = vertex[0, :] * scale_x + sx
+#     vertex[1, :] = vertex[1, :] * scale_y + sy
 
-    s = (scale_x + scale_y) / 2
-    vertex[2, :] *= s
+#     s = (scale_x + scale_y) / 2
+#     vertex[2, :] *= s
     
-    return vertex
+#     return vertex
     
     
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--files', default='./faces/male/', help='path to a single image or path to a folder containing multiple images')
+    parser.add_argument('-f', '--files', default='./faces/', help='path to a single image or path to a folder containing multiple images')
     parser.add_argument("--png", action="store_true", help="if images are with .png extension")
     parser.add_argument('--img_size', default=120, type=int)
     parser.add_argument('-b', '--batch-size', default=1, type=int)
