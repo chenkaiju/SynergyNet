@@ -2,7 +2,11 @@ import os
 import tensorflow as tf
 from tensorflow import keras
 import argparse
-from synergynet_tf import SynergyNetPred, SynergyNet
+from synergynet_tf import SynergyNetPred
+
+import tf2onnx
+import onnxruntime as onnxrt
+
 
 # All data parameters import
 from utilstf.params import ParamsPack
@@ -21,18 +25,14 @@ def parse_args():
     global args
     args = parser.parse_args()
     
-def main():
+def convertToSaveModel(ckpt_path):
     
     parse_args()
     
     model_pred = SynergyNetPred(args)
     
-    # load pre-tained model
-    dir="./saved_model"
-    ckpt_name='cp-0200.ckpt'
-    
-    trained_model = os.path.join(dir, ckpt_name)
-    model_pred.load_weights(trained_model).expect_partial()
+    # load pre-tained model    
+    model_pred.load_weights(ckpt_path).expect_partial()
     
     model_pred.compute_output_shape(input_shape=(None, 120, 120, 3))
     
@@ -47,5 +47,27 @@ def main():
     model_pred.save(predict_model_path)
     model_pred.save_weights(predict_model_weights)
     
+    return model_pred
+    
+def convertToOnnx(model, onnx_path):
+    
+    spec = (tf.TensorSpec((None, 120, 120, 3), tf.float32, name="input"),)
+    
+    model_proto, _ = tf2onnx.convert.from_keras(model, input_signature=spec, opset=13, output_path=onnx_path)
+    output_names = [n.name for n in model_proto.graph.output]
+    
+    print(output_names)
+    
+    
 if __name__ == '__main__':
-    main()
+    
+    dir="./saved_model"
+    ckpt_name='cp-0200.ckpt'
+    ckpt_path = os.path.join(dir, ckpt_name)
+    
+    save_model = convertToSaveModel(ckpt_path)
+    
+    dir="./pred_model/onnx"
+    onnx_model_name = "saved_model.onnx"
+    onnx_path = os.path.join(dir, onnx_model_name)
+    convertToOnnx(save_model, onnx_path)

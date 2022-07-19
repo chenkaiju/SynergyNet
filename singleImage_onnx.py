@@ -1,9 +1,7 @@
-import time
-from cv2 import transform
 import numpy as np
-import tensorflow as tf
 import cv2
-from synergynet_tf import SynergyNetPred
+import time
+
 from utilstf.inference import crop_img, predict_sparseVert, draw_landmarks, predict_denseVert, predict_pose, draw_axis
 import argparse
 import os
@@ -12,23 +10,23 @@ import glob
 from FaceBoxes import FaceBoxes
 from utils.render import render
 import scipy.io as sio
+import onnxruntime as onnxrt
 
 from utilstf.params import ParamsPack
 param_pack = ParamsPack()
 
-# Following 3DDFA-V2, we also use 120x120 resolution
 IMG_SIZE = 120
 
-    
 def main(args):
-       
-    model_path = "./pred_model/save_model"
     
     load_start = time.process_time()
-    model = tf.keras.models.load_model(model_path)
+    session = onnxrt.InferenceSession("./pred_model/onnx/saved_model.onnx",
+                                      providers=['TensorrtExecutionProvider', 
+                                                 'CUDAExecutionProvider', 
+                                                 'CPUExecutionProvider'])
     load_end = time.process_time()
     print("load time: {}".format(load_end-load_start))
-    
+    print(onnxrt.get_device())
     # face detector
     face_boxes = FaceBoxes()
 
@@ -43,6 +41,7 @@ def main(args):
         files = [args.files]
 
     for img_fp in files:
+        
         print("Process the image: ", img_fp)
 
         img_ori = cv2.imread(img_fp)
@@ -70,21 +69,20 @@ def main(args):
             img = crop_img(img_ori, roi_box)
             img = cv2.resize(img, dsize=(IMG_SIZE, IMG_SIZE), interpolation=cv2.INTER_LINEAR)
             
-            cv2.imwrite(f'inference_output/validate_crop/validate_{idx}.png', img)
-            
+           
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            input = tf.cast(img_rgb, tf.float32)
-            input = tf.expand_dims(input, 0)
-            
-            inference_start = time.process_time()
-            res = model(input, training=False)
-            inference_end = time.process_time()
-            print("Inference time: {}".format(inference_end-inference_start))
-            param_pred_batch = res['pred_param']
-            
-            param_pred = tf.squeeze(param_pred_batch, [0]).numpy()
+            input = img_rgb.astype(np.float32)[np.newaxis, ...]
             
             # inferences
+            inference_start = time.process_time()
+            inp_dct = {'input': input}
+            param_pred = session.run(None, inp_dct)[0]
+            inference_end = time.process_time()
+            print("inference time: {}".format(inference_end-inference_start))
+            param_pred = param_pred.squeeze(axis=0)
+            cv2.imwrite(f'inference_output/validate_crop/validate_{idx}.png', img)
+            
+            
             lmks = predict_sparseVert(param_pred, roi_box, transform=True)
             vertices = predict_denseVert(param_pred, roi_box, transform=True)
             angles, translation = predict_pose(param_pred, roi_box)
