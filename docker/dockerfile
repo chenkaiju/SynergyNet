@@ -1,5 +1,8 @@
 FROM tensorflow/tensorflow:2.8.0-gpu
 
+RUN rm /etc/apt/sources.list.d/cuda.list
+RUN rm /etc/apt/sources.list.d/nvidia-ml.list
+
 # Install some basic utilities
 RUN apt-get update && apt-get install -y \
     curl \
@@ -9,9 +12,10 @@ RUN apt-get update && apt-get install -y \
     bzip2 \
     libx11-6 \
     build-essential \
+    nvidia-cuda-toolkit\
  && rm -rf /var/lib/apt/lists/*
 
- # Create a working directory
+# Create a working directory
 RUN mkdir /app
 WORKDIR /app
 
@@ -53,13 +57,21 @@ RUN chmod 777 /home/$USERNAME
 #  && conda clean -ya
 
 RUN python -m pip install --upgrade pip
-RUN pip install numpy==1.21.2
-RUN pip install pillow==8.4.0
-RUN pip install scipy==1.7.1
-RUN pip install tqdm==4.62.3
-RUN pip install Cython
-RUN pip install Matplotlib
-RUN pip install opencv-python-headless
+RUN pip3 install numpy==1.23.1
+RUN pip3 install pillow==8.4.0
+RUN pip3 install scipy==1.8.1
+RUN pip3 install tqdm==4.62.3
+RUN pip3 install Cython
+RUN pip3 install Matplotlib
+RUN pip3 install opencv-python-headless
+RUN pip3 install torch
+RUN pip3 install tf2onnx
+RUN pip3 install onnxruntime-gpu
+RUN pip3 install nvidia-pyindex
+RUN pip3 install nvidia-tensorrt
+RUN pip3 install pycuda==2022.1
+
+
 
 
 # [Optional] Set the default user. Omit if you want to keep the default as root.
