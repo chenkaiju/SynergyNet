@@ -34,8 +34,4 @@ def load_engine(trt_runtime, plan_path):
 
 if __name__=='__main__':
     
-    engine_name = './pred_model/tensorrt/synergy_pred.plan'
-    onnx_path = "./pred_model/onnx/saved_model.onnx"
-    batch_size = 1
-    
-    onnx_to_plan(onnx_path, batch_size, engine_name)
+    pass
