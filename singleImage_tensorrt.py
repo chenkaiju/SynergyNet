@@ -1,9 +1,7 @@
-import time
-from cv2 import transform
 import numpy as np
-import tensorflow as tf
 import cv2
-from synergynet_tf import SynergyNetPred
+import time
+
 from utilstf.inference import crop_img, predict_sparseVert, draw_landmarks, predict_denseVert, predict_pose, draw_axis
 import argparse
 import os
@@ -13,22 +11,28 @@ from FaceBoxes import FaceBoxes
 from utils.render import render
 import scipy.io as sio
 
+import tensorrt as trt
+import tensorrt_engine as RTEngine
+import tensorrt_inference as Inference
+
+
 from utilstf.params import ParamsPack
 param_pack = ParamsPack()
 
-# Following 3DDFA-V2, we also use 120x120 resolution
 IMG_SIZE = 120
 
-    
 def main(args):
-       
-    model_path = "./pred_model/save_model"
     
     load_start = time.process_time()
-    model = tf.keras.models.load_model(model_path)
+    TRT_LOGGER = trt.Logger(trt.Logger.ERROR)
+    trt_runtime = trt.Runtime(TRT_LOGGER)
+    serialized_plan_fp32 = './pred_model/tensorrt/synergy_pred.plan'
+    engine = RTEngine.load_engine(trt_runtime, serialized_plan_fp32)
+    h_input, d_input, h_output, d_output, stream = Inference.allocate_buffers(engine, 1, trt.float32)
     load_end = time.process_time()
-    print("load time: {}".format(load_end-load_start))
-    
+    load_time = load_end-load_start
+
+
     # face detector
     face_boxes = FaceBoxes()
 
@@ -43,8 +47,9 @@ def main(args):
         files = [args.files]
 
     avg = 0
-    count = 0
+    count = 0    
     for img_fp in files:
+        
         print("Process the image: ", img_fp)
 
         img_ori = cv2.imread(img_fp)
@@ -73,23 +78,23 @@ def main(args):
             img = crop_img(img_ori, roi_box)
             img = cv2.resize(img, dsize=(IMG_SIZE, IMG_SIZE), interpolation=cv2.INTER_LINEAR)
             
-            cv2.imwrite(f'inference_output/validate_crop/validate_{idx}.png', img)
-            
+           
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            input = tf.cast(img_rgb, tf.float32)
-            input = tf.expand_dims(input, 0)
-            
-            inference_start = time.process_time()
-            res = model(input, training=False)
-            inference_end = time.process_time()
-            avg += inference_end-inference_start
-            count += 1
-            print("Inference time: {}".format(inference_end-inference_start))
-            param_pred_batch = res['pred_param']
-            
-            param_pred = tf.squeeze(param_pred_batch, [0]).numpy()
+            input = img_rgb.astype(np.float32)[np.newaxis, ...]
             
             # inferences
+            inference_start = time.process_time()
+            inp_dct = {'input': input}
+            param_pred = Inference.do_inference(engine, input, h_input, d_input, h_output, d_output, stream, 1)
+            #param_pred = session.run(None, inp_dct)[0]
+            inference_end = time.process_time()
+            avg += (inference_end-inference_start)
+            count += 1
+            print("inference time: {}".format(inference_end-inference_start))
+            param_pred = param_pred.squeeze(axis=0)
+            cv2.imwrite(f'inference_output/validate_crop/validate_{idx}.png', img)
+            
+            
             lmks = predict_sparseVert(param_pred, roi_box, transform=True)
             vertices = predict_denseVert(param_pred, roi_box, transform=True)
             angles, translation = predict_pose(param_pred, roi_box)
@@ -97,7 +102,7 @@ def main(args):
             pts_res.append(lmks)
             vertices_lst.append(vertices)
             poses.append([angles, translation, lmks])
-            
+                    
 
         if not osp.exists(f'inference_output/rendering_overlay/'):
             os.makedirs(f'inference_output/rendering_overlay/')
@@ -127,22 +132,10 @@ def main(args):
         print(f'Save pose result to {wfp}')
         
     avg /= count
-    print("avg inference time: ", avg)
+    print("load time: {}".format(load_time))
+    print("avg inference time: ", avg)    
 
-# def transformToROI(vertex, roi_bbox):
-    
-#     sx, sy, ex, ey, _ = roi_bbox
-#     scale_x = (ex - sx) / 120
-#     scale_y = (ey - sy) / 120
-#     vertex[0, :] = vertex[0, :] * scale_x + sx
-#     vertex[1, :] = vertex[1, :] * scale_y + sy
-
-#     s = (scale_x + scale_y) / 2
-#     vertex[2, :] *= s
-    
-#     return vertex
-    
-    
+ 
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -40,6 +40,8 @@ def main(args):
     else:
         files = [args.files]
 
+    avg = 0
+    count = 0  
     for img_fp in files:
         
         print("Process the image: ", img_fp)
@@ -55,7 +57,7 @@ def main(args):
         vertices_lst = []
         if not osp.exists(f'inference_output/validate_crop/'):
             os.makedirs(f'inference_output/validate_crop/')
-            
+          
         for idx, rect in enumerate(rects):
             roi_box = rect
 
@@ -78,6 +80,8 @@ def main(args):
             inp_dct = {'input': input}
             param_pred = session.run(None, inp_dct)[0]
             inference_end = time.process_time()
+            avg += (inference_end-inference_start)
+            count += 1
             print("inference time: {}".format(inference_end-inference_start))
             param_pred = param_pred.squeeze(axis=0)
             cv2.imwrite(f'inference_output/validate_crop/validate_{idx}.png', img)
@@ -89,7 +93,7 @@ def main(args):
 
             pts_res.append(lmks)
             vertices_lst.append(vertices)
-            poses.append([angles, translation, lmks])
+            poses.append([angles, translation, lmks])         
 
         if not osp.exists(f'inference_output/rendering_overlay/'):
             os.makedirs(f'inference_output/rendering_overlay/')
@@ -118,20 +122,9 @@ def main(args):
         cv2.imwrite(wfp, img_axis_plot)
         print(f'Save pose result to {wfp}')
 
-# def transformToROI(vertex, roi_bbox):
-    
-#     sx, sy, ex, ey, _ = roi_bbox
-#     scale_x = (ex - sx) / 120
-#     scale_y = (ey - sy) / 120
-#     vertex[0, :] = vertex[0, :] * scale_x + sx
-#     vertex[1, :] = vertex[1, :] * scale_y + sy
-
-#     s = (scale_x + scale_y) / 2
-#     vertex[2, :] *= s
-    
-#     return vertex
-    
-    
+    avg /= count
+    print("avg inference time: ", avg)   
+ 
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

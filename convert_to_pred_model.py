@@ -1,12 +1,12 @@
 import os 
 import tensorflow as tf
-from tensorflow import keras
 import argparse
 from synergynet_tf import SynergyNetPred
 
 import tf2onnx
-import onnxruntime as onnxrt
 
+from onnx import ModelProto
+import tensorrt_engine as TensorRTEngine
 
 # All data parameters import
 from utilstf.params import ParamsPack
@@ -55,9 +55,34 @@ def convertToOnnx(model, onnx_path):
     
     model_proto, _ = tf2onnx.convert.from_keras(model, input_signature=spec, opset=13, output_path=onnx_path)
     output_names = [n.name for n in model_proto.graph.output]
+    input_names = [n.name for n in model_proto.graph.input]
     
-    print(output_names)
+    inputs = model_proto.graph.input
+    for input in inputs:
+        dim1 = input.type.tensor_type.shape.dim[0]
+        dim1.dim_value = 1
     
+    print("input: ", input_names)
+    print("output: ", output_names)
+    
+
+def convertToTensorRT(onnx_model, batch_size, tensorrt_path):
+ 
+    pass
+
+def onnx_to_plan(onnx_path, batch_size, plan_path):
+
+    model = ModelProto()
+    with open(onnx_path, "rb") as f:
+        model.ParseFromString(f.read())
+        
+    d0 = model.graph.input[0].type.tensor_type.shape.dim[1].dim_value
+    d1 = model.graph.input[0].type.tensor_type.shape.dim[2].dim_value
+    d2 = model.graph.input[0].type.tensor_type.shape.dim[3].dim_value
+    shape = [batch_size , d0, d1 ,d2]
+    
+    engine = TensorRTEngine.build_engine(onnx_path, input_shape = shape)
+    TensorRTEngine.save_engine(engine, plan_path)     
     
 if __name__ == '__main__':
     
@@ -71,3 +96,7 @@ if __name__ == '__main__':
     onnx_model_name = "saved_model.onnx"
     onnx_path = os.path.join(dir, onnx_model_name)
     convertToOnnx(save_model, onnx_path)
+    
+    engine_path = './pred_model/tensorrt/synergy_pred.plan'
+    batch_size = 1    
+    onnx_to_plan(onnx_path, batch_size, engine_path)    
